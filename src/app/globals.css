@@ -1,5 +1,5 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,6 +16,14 @@
     --font-sans: var(--font-sans);
   }
   :root {
+    --color-primary: #085280;
+    --color-accent: #ffb400;
+    --color-link-inactive: #2e7bb5;
+    --color-bg-page: #f3f6f9;
+    --color-bg-footer: #ced9fb;
+    --color-bg-card: #ffffff;
+    --color-text-dark: #1a1a2e;
+    --color-text-muted: #555555;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -87,8 +95,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans), Inter, system-ui, sans-serif;
+    color: var(--color-text-dark);
   }
   html {
     @apply font-sans;
+    font-family: var(--font-sans), Inter, system-ui, sans-serif;
   }
 }
