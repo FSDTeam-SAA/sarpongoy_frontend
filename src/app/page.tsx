@@ -1,5 +1,5 @@
 import Navbar from "@/components/shared/Navbar";
-import HeroCarousel from "@/components/sections/HeroCarousel";
+import HomeHeroBanner from "@/components/sections/HomeHeroBanner";
 import CompetitiveEdge from "@/components/sections/CompetitiveEdge";
 import BuiltForSchools from "@/components/sections/BuiltForSchools";
 import DemoCallToAction from "@/components/sections/DemoCallToAction";
@@ -9,7 +9,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[var(--color-bg-page)]">
       <Navbar />
-      <HeroCarousel />
+      <HomeHeroBanner />
       <CompetitiveEdge />
       <BuiltForSchools />
       <DemoCallToAction />
