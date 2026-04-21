@@ -31,7 +31,7 @@ export default function CarouselSlide({
       />
       <div className="relative z-10 flex h-full items-center">
         <div className="mx-auto w-full max-w-[1180px] px-6 sm:px-10">
-          <div className="mb-7 h-2.5 w-[108px] bg-[#FFC400]" />
+          <div className="mb-7 h-3 w-[120px] bg-[#FFB400]" />
           <h1 className="max-w-[560px] text-[42px] font-bold leading-[52px] tracking-[0] text-white md:text-[48px] md:leading-[60px]">
             {heading}
           </h1>

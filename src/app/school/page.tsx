@@ -1,13 +1,13 @@
 import Link from 'next/link'
 import {
   BarChart3,
-  ChevronRight,
   FileText,
   Layers,
   MonitorCheck,
 } from 'lucide-react'
 import Navbar from '@/components/shared/Navbar'
 import Footer from '@/components/shared/Footer'
+import SchoolHeroCarousel from '@/components/sections/SchoolHeroCarousel'
 
 const schoolBenefits = [
   {
@@ -65,48 +65,13 @@ export default function SchoolPage() {
   return (
     <main className="min-h-screen bg-white text-[var(--color-text-dark)]">
       <Navbar />
-
-      <section className="pt-[182px]">
-        <div
-          className="relative h-[640px] overflow-hidden rounded-br-[120px] bg-cover bg-center"
-          style={{
-            backgroundImage: "url('/images/cover-image2.png')",
-            backgroundPosition: 'center top',
-          }}
-        >
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,47,79,0.9)_0%,rgba(8,47,79,0.72)_45%,rgba(8,47,79,0.25)_100%)]" />
-          <div className="relative z-10 flex h-full items-center">
-            <div className="mx-auto w-full max-w-[1180px] px-6 sm:px-10">
-              <div className="mb-7 h-2.5 w-[108px] bg-[#FFC400]" />
-              <h1 className="max-w-[560px] text-[42px] font-bold leading-[52px] tracking-[0] text-white md:text-[48px] md:leading-[60px]">
-                Classroom delivery,
-                <br />
-                now simplified
-              </h1>
-              <p className="mt-5 max-w-[710px] text-[24px] font-semibold leading-[36px] tracking-[0] text-white/75">
-                Deliver structured lessons with clear, consistent, and easy to
-                follow learning pathways across all subjects.
-              </p>
-              <Link
-                href="/contact-us"
-                className="mt-8 inline-flex items-center gap-5 rounded-md border border-white bg-transparent px-7 py-4 text-center [font-family:var(--font-manrope)] text-[20px] font-bold leading-[27px] tracking-[0] text-white transition hover:bg-white hover:text-[var(--color-primary)]"
-              >
-                Request Demo
-                <ChevronRight
-                  className="size-5 stroke-[3]"
-                  aria-hidden="true"
-                />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <SchoolHeroCarousel />
 
       <section className="bg-white px-4 py-20">
         <div className="mx-auto max-w-[1120px] text-center">
           <h2 className="max-w-[1110px] text-[36px] font-medium  leading-[38px] tracking-[0] text-[var(--color-text-dark)] md:text-[36px] md:leading-[44px]">
-            iLearnReady partners with schools that are committed to improving
-            academic outcomes and modernizing learning experience
+            Designed to improve exam readiness, strengthen classroom
+            consistency, and elevate overall school performance
           </h2>
           <p className="mx-auto text-[20px] font-normal mt-8 leading-[30px] tracking-[0] text-[#4A5565] md:text-[20px] md:leading-[34px]">
             iLearnReady enables schools to deliver structured, high quality
@@ -182,13 +147,13 @@ export default function SchoolPage() {
       <section className="bg-white px-4 py-20">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-[34px] font-semibold leading-[44px] tracking-[0] text-[var(--color-text-dark)]">
-            Ideal Partners
+            Our Ideal Partners
           </h2>
           <div className="mt-10 grid gap-8 md:grid-cols-3">
             {partners.map(partner => (
               <div
                 key={partner}
-                className="mx-auto flex h-[142px] w-full max-w-[230px] items-center justify-center rounded-md bg-[#C94F20] px-6 text-center text-[22px] font-normal leading-[28px] tracking-[0] text-white"
+                className="mx-auto flex h-[170px] w-full max-w-[380px] items-center justify-center rounded-md bg-[#C94F20] px-10 text-center text-[24px] font-normal leading-[32px] tracking-[0] text-white"
               >
                 {partner}
               </div>

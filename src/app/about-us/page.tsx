@@ -1,10 +1,10 @@
 import Image from 'next/image'
 import {
-  BadgeCheck,
-  BarChart3,
-  ClipboardCheck,
-  HandCoins,
-  Search,
+  Award,
+  ChartNoAxesColumnIncreasing,
+  CircleAlert,
+  FileCheck2,
+  HandHelping,
   Zap,
 } from 'lucide-react'
 import Navbar from '@/components/shared/Navbar'
@@ -20,7 +20,7 @@ const focusItems = [
 
 const impactItems = [
   {
-    icon: BarChart3,
+    icon: ChartNoAxesColumnIncreasing,
     title: '15-30%',
     text: 'higher assessment scores',
   },
@@ -30,22 +30,22 @@ const impactItems = [
     text: 'topic mastery',
   },
   {
-    icon: ClipboardCheck,
+    icon: FileCheck2,
     title: '25-50%',
     text: 'higher lesson completion',
   },
   {
-    icon: Search,
+    icon: CircleAlert,
     title: 'Early Gap Detection',
     text: 'identify weak areas early',
   },
   {
-    icon: HandCoins,
+    icon: HandHelping,
     title: 'Stronger School Appeal',
     text: 'drive enrollment growth',
   },
   {
-    icon: BadgeCheck,
+    icon: Award,
     title: 'More value for parents',
     text: 'visible, measurable learning',
   },
@@ -58,14 +58,17 @@ export default function AboutUsPage() {
 
       <section className="pt-[126px]">
         <div
-          className="relative h-[460px] bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/about-us-banner.png')" }}
+          className="relative h-[540px] bg-cover"
+          style={{
+            backgroundImage: "url('/images/about-us-banner.png')",
+            backgroundPosition: 'center 62%',
+          }}
         >
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,47,79,0.72)_0%,rgba(8,47,79,0.35)_45%,rgba(8,47,79,0.08)_100%)]" />
         </div>
 
-        <div className="relative z-10 mx-auto -mt-[116px] max-w-[820px] rounded-tr-[22px] bg-white px-8 py-10 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:px-12">
-          <div className="grid gap-9 md:grid-cols-[1fr_220px]">
+        <div className="relative z-10 mx-auto -mt-[108px] max-w-[960px] rounded-tr-[22px] bg-white px-8 py-10 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:px-12">
+          <div className="grid gap-9 md:grid-cols-[1fr_240px]">
             <div>
               <h1 className="text-[34px] font-bold leading-[44px] tracking-[0] text-[var(--color-text-dark)]">
                 About Us
@@ -84,9 +87,18 @@ export default function AboutUsPage() {
             </div>
 
             <div className="border-l border-[#E0E0E0] pl-6">
-              <div className="flex flex-col gap-5 text-[16px] font-semibold leading-none tracking-[0] text-[#4A5565]">
+              <div className="flex flex-col gap-9 text-[16px] font-semibold leading-none tracking-[0] text-[#5F6E5E]">
                 {focusItems.map(item => (
-                  <span key={item}>{item}</span>
+                  <span
+                    key={item}
+                    className={
+                      item === 'Ghana Focus'
+                        ? 'text-[16px] font-extrabold text-[var(--color-text-dark)]'
+                        : undefined
+                    }
+                  >
+                    {item}
+                  </span>
                 ))}
               </div>
             </div>
@@ -110,7 +122,7 @@ export default function AboutUsPage() {
         </div>
 
         <div className="mx-auto mt-16 max-w-[1180px] rounded-md border border-[#D8D8D8] bg-white px-5 pb-8 pt-3 shadow-[0_4px_14px_rgba(27,47,91,0.08)]">
-          <h2 className="text-center text-[36px] font-bold leading-[48px] tracking-[0] text-[var(--color-text-dark)]">
+          <h2 className="text-center text-[38px] font-extrabold leading-[48px] tracking-[0] text-[var(--color-text-dark)]">
             Our impact at a glance
           </h2>
 
@@ -127,11 +139,11 @@ export default function AboutUsPage() {
                       index % 3 !== 0 ? 'md:border-l md:border-[#D4D4D4]' : '',
                     ].join(' ')}
                   >
-                    <Icon className="size-14 stroke-[2.5] text-black" />
-                    <h3 className="mt-5 text-[24px] font-extrabold leading-[30px] tracking-[0] text-[var(--color-primary)]">
+                    <Icon className="size-16 stroke-[2.8] text-black" />
+                    <h3 className="mt-5 text-[26px] font-extrabold leading-[32px] tracking-[0] text-[var(--color-primary)]">
                       {item.title}
                     </h3>
-                    <p className="mt-4 max-w-[190px] text-center text-[16px] font-normal leading-[24px] tracking-[0] text-[#111111]">
+                    <p className="mt-4 max-w-[220px] text-center text-[17px] font-medium leading-[27px] tracking-[0] text-[#111111]">
                       {item.text}
                     </p>
                   </div>
@@ -207,15 +219,15 @@ export default function AboutUsPage() {
       </section>
 
       <section
-        className="relative min-h-[420px] bg-cover bg-center px-4 py-24"
+        className="relative min-h-[580px] bg-cover px-4 py-24"
         style={{
           backgroundImage: "url('/images/partners.png')",
-          backgroundPosition: 'center 28%',
+          backgroundPosition: 'center 8%',
         }}
       >
         <div className="absolute inset-0 bg-black/20" />
         <div className="relative z-10 mx-auto flex min-h-[228px] max-w-[1060px] items-center">
-          <div className="max-w-[400px] rounded-md bg-white px-8 py-10 shadow-[0_10px_30px_rgba(27,47,91,0.12)]">
+          <div className="max-w-[440px] rounded-md bg-white px-8 py-10 shadow-[0_10px_30px_rgba(27,47,91,0.12)]">
             <h2 className="text-[26px] font-bold leading-[36px] tracking-[0] text-[var(--color-primary)]">
               Flexible School Partnerships
             </h2>
