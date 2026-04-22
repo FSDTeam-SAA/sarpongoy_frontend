@@ -1,16 +1,20 @@
 import axios from "axios";
 
 export const axiosInstance = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
+    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1",
     headers: {
         "Content-Type": "application/json",
     },
 });
 
-// Adding interceptors (e.g. for attaching auth tokens dynamically if needed)
 axiosInstance.interceptors.request.use(
     (config) => {
-        // You can attach tokens from session here if needed
+        if (typeof window !== "undefined") {
+            const token = localStorage.getItem("ilearn_access_token");
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+        }
         return config;
     },
     (error) => {

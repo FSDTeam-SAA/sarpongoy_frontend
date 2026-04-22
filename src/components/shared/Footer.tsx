@@ -28,7 +28,7 @@ export default function Footer() {
                 style={{ transform: 'translate(-32px, -48px)' }}
               />
             </Link>
-            <p className="max-w-xs text-[12px] font-normal leading-none tracking-[0] text-[var(--color-text-muted)]">
+            <p className="max-w-xs text-[14px] font-normal leading-none tracking-[0] text-[var(--color-text-muted)]">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer
               learning support built for modern classrooms.
             </p>

@@ -1,12 +1,4 @@
 import Image from 'next/image'
-import {
-  Award,
-  ChartNoAxesColumnIncreasing,
-  CircleAlert,
-  FileCheck2,
-  HandHelping,
-  Zap,
-} from 'lucide-react'
 import Navbar from '@/components/shared/Navbar'
 import Footer from '@/components/shared/Footer'
 
@@ -20,32 +12,32 @@ const focusItems = [
 
 const impactItems = [
   {
-    icon: ChartNoAxesColumnIncreasing,
+    icon: '/images/icon1.png',
     title: '15-30%',
     text: 'higher assessment scores',
   },
   {
-    icon: Zap,
+    icon: '/images/icon2.png',
     title: '2x faster',
     text: 'topic mastery',
   },
   {
-    icon: FileCheck2,
+    icon: '/images/icon3.png',
     title: '25-50%',
     text: 'higher lesson completion',
   },
   {
-    icon: CircleAlert,
+    icon: '/images/icon4.png',
     title: 'Early Gap Detection',
     text: 'identify weak areas early',
   },
   {
-    icon: HandHelping,
+    icon: '/images/icon5.png',
     title: 'Stronger School Appeal',
     text: 'drive enrollment growth',
   },
   {
-    icon: Award,
+    icon: '/images/icon6.png',
     title: 'More value for parents',
     text: 'visible, measurable learning',
   },
@@ -112,7 +104,7 @@ export default function AboutUsPage() {
           <h2 className="text-[30px] font-semibold leading-[40px] tracking-[0] text-[var(--color-text-dark)]">
             Foundational to Modern Education Delivery
           </h2>
-          <p className="mx-auto mt-6 max-w-[720px] text-[16px] font-normal leading-[26px] tracking-[0] text-[#4A5565]">
+          <p className="mx-auto mt-6 max-w-[720px] text-[18px] font-normal leading-[28px] tracking-[0] text-[#4A5565]">
             We play an essential role in supporting schools by providing
             structured, technology enabled learning systems that improve
             consistency and academic outcomes. As education continues to evolve,
@@ -121,7 +113,7 @@ export default function AboutUsPage() {
           </p>
         </div>
 
-        <div className="mx-auto mt-16 max-w-[1180px] rounded-md border border-[#D8D8D8] bg-white px-5 pb-8 pt-3 shadow-[0_4px_14px_rgba(27,47,91,0.08)]">
+        <div className="mx-auto mt-16 max-w-[1180px] rounded-lg border border-[#D8D8D8] bg-white px-5 pb-8 pt-3 shadow-[0_4px_14px_rgba(27,47,91,0.08)]">
           <h2 className="text-center text-[38px] font-extrabold leading-[48px] tracking-[0] text-[var(--color-text-dark)]">
             Our impact at a glance
           </h2>
@@ -129,8 +121,6 @@ export default function AboutUsPage() {
           <div className="mt-12 rounded-[40px] bg-[#F8F8F7] px-6 py-12">
             <div className="grid gap-y-10 md:grid-cols-3">
               {impactItems.map((item, index) => {
-                const Icon = item.icon
-
                 return (
                   <div
                     key={item.title}
@@ -139,11 +129,17 @@ export default function AboutUsPage() {
                       index % 3 !== 0 ? 'md:border-l md:border-[#D4D4D4]' : '',
                     ].join(' ')}
                   >
-                    <Icon className="size-16 stroke-[2.8] text-black" />
+                    <Image
+                      src={item.icon}
+                      alt={item.title}
+                      width={64}
+                      height={64}
+                      className="h-16 w-16 object-contain"
+                    />
                     <h3 className="mt-5 text-[26px] font-extrabold leading-[32px] tracking-[0] text-[var(--color-primary)]">
                       {item.title}
                     </h3>
-                    <p className="mt-4 max-w-[220px] text-center text-[17px] font-medium leading-[27px] tracking-[0] text-[#111111]">
+                    <p className="mt-4 max-w-[220px] text-center text-[17px] font-light leading-[27px] tracking-[0] text-[#111111]">
                       {item.text}
                     </p>
                   </div>
@@ -209,7 +205,7 @@ export default function AboutUsPage() {
             </p>
           </div>
           <Image
-            src="/images/real-learning1.png"
+            src="/images/delivering-imapact.png"
             alt="Learning progress dashboard"
             width={430}
             height={260}

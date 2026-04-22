@@ -10,7 +10,7 @@ export default function PurchasePlanPage() {
     <AuthShell maxWidth="max-w-[520px]">
       <AuthLogo />
 
-      <h1 className="mt-8 text-center text-[22px] font-bold leading-[30px] tracking-[0] text-[#111111]">
+      <h1 className="mt-8 text-center text-[28px] font-bold leading-[36px] tracking-[0] text-[#111111]">
         Purchase a plan to access your dashboard
       </h1>
 
