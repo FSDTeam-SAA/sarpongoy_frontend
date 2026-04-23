@@ -107,8 +107,8 @@ export default function ContactUsPage() {
 
             <div className="overflow-hidden rounded-md">
               <iframe
-                title="Savanna Green location map"
-                src="https://maps.google.com/maps?q=Savanna%20Green%20Ghana&t=&z=13&ie=UTF8&iwloc=&output=embed"
+                title="Airport Residential Area, Accra, Ghana location map"
+                src="https://maps.google.com/maps?q=Airport%20Residential%20Area%2C%20Accra%2C%20Ghana&t=&z=14&ie=UTF8&iwloc=&output=embed"
                 className="h-[460px] w-full border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
