@@ -107,7 +107,7 @@ export default function ContactUsPage() {
 
             <div className="overflow-hidden rounded-md">
               <iframe
-                title="Airport Residential Area, Accra, Ghana location map"
+                title="iLearnReady location map"
                 src="https://maps.google.com/maps?q=Airport%20Residential%20Area%2C%20Accra%2C%20Ghana&t=&z=14&ie=UTF8&iwloc=&output=embed"
                 className="h-[460px] w-full border-0"
                 loading="lazy"

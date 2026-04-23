@@ -47,9 +47,9 @@ const tabs: SchoolTab[] = [
   },
   {
     id: 'teacher',
-    label: 'Teacher Support',
+    label: 'Teacher Fit',
     icon: Monitor,
-    image: '/images/real-learning2.png',
+    image: '/images/teacher-fit.png',
     description:
       'iLearnReady is designed to support teachers by providing structure and clarity, allowing them to focus on effective instruction and identify learning gaps early.',
     bullets: [],
@@ -58,7 +58,7 @@ const tabs: SchoolTab[] = [
     id: 'environment',
     label: 'Environment Fit',
     icon: MapPin,
-    image: '/images/real-learning2.png',
+    image: '/images/environment-fit.png',
     description:
       'iLearnReady adapts to any school environment, whether urban or rural, ensuring every student has access to quality education.',
     bullets: [],
