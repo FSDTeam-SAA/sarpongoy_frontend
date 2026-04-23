@@ -48,12 +48,12 @@ export default function SchoolHeroCarousel() {
   const [activeSlide, setActiveSlide] = useState(0)
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
+    const timeout = window.setTimeout(() => {
       setActiveSlide(current => (current + 1) % slides.length)
     }, 4500)
 
-    return () => window.clearInterval(interval)
-  }, [])
+    return () => window.clearTimeout(timeout)
+  }, [activeSlide])
 
   return (
     <section className="pt-[182px]">

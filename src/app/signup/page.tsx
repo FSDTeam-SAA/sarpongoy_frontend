@@ -218,8 +218,10 @@ export default function SignUpPage() {
               <input
                 id="population"
                 name="totalStudent"
-                type="text"
-                placeholder="Write here"
+                type="number"
+                min="0"
+                inputMode="numeric"
+                placeholder="0"
                 value={form.totalStudent}
                 onChange={handleChange}
                 className="mt-2 h-12 w-full rounded-sm border border-[#CACACA] px-4 text-[15px] outline-none focus:border-[var(--color-primary)]"
