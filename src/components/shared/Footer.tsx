@@ -9,8 +9,10 @@ const menuLinks = [
 ]
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear()
+
   return (
-    <footer className="bg-[var(--color-bg-footer)] px-8 py-12 text-[var(--color-text-dark)]">
+    <footer className="bg-[#F4F7FB] px-8 py-12 text-[var(--color-text-dark)]">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -60,16 +62,16 @@ export default function Footer() {
               </Link>
               <p>Linienstrasse 120, Berlin</p>
               <a
-                href="mailto:bz@mail.com"
+                href="mailto:info@etiaghana.com"
                 className="hover:text-[var(--color-primary)]"
               >
-                bz@mail.com
+                info@etiaghana.com
               </a>
               <a
-                href="tel:+1234567889"
+                href="tel:+233544444193"
                 className="hover:text-[var(--color-primary)]"
               >
-                +1234 567 889
+                +233 54 444 4193
               </a>
             </div>
           </div>
@@ -96,8 +98,8 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-[rgba(27,47,91,0.18)] pt-6 text-center text-[20px] font-normal leading-none tracking-[0] text-[var(--color-text-muted)]">
-          © 2025 iLearnReady. All rights reserved.
+        <div className="mt-10 border-t border-[rgba(8,82,128,0.14)] pt-6 text-center text-[20px] font-normal leading-none tracking-[0] text-[var(--color-text-muted)]">
+          © {currentYear} iLearnReady. All rights reserved.
         </div>
       </div>
     </footer>

@@ -108,7 +108,7 @@ export default function ContactUsPage() {
             <div className="overflow-hidden rounded-md">
               <iframe
                 title="iLearnReady location map"
-                src="https://maps.google.com/maps?q=Airport%20Residential%20Area%2C%20Accra%2C%20Ghana&t=&z=14&ie=UTF8&iwloc=&output=embed"
+                src="https://maps.google.com/maps?ll=5.605278,-0.171389&z=14&hl=en&output=embed"
                 className="h-[460px] w-full border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
