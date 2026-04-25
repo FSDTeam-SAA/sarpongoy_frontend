@@ -1,8 +1,75 @@
-import { Mail, Phone } from 'lucide-react'
+'use client'
+
+import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { Loader2, Mail, Phone } from 'lucide-react'
 import Navbar from '@/components/shared/Navbar'
 import Footer from '@/components/shared/Footer'
+import { axiosInstance } from '@/lib/axios'
+import { toast } from 'sonner'
+
+type ContactFormState = {
+  schoolName: string
+  email: string
+  phoneNumber: string
+  message: string
+}
+
+const initialFormState: ContactFormState = {
+  schoolName: '',
+  email: '',
+  phoneNumber: '',
+  message: '',
+}
 
 export default function ContactUsPage() {
+  const [form, setForm] = useState<ContactFormState>(initialFormState)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setForm(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    const schoolName = form.schoolName.trim()
+    const email = form.email.trim()
+    const phoneNumber = form.phoneNumber.trim()
+    const message = form.message.trim()
+
+    if (!schoolName || !email || !message) {
+      toast.error('Please fill in the required fields.')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await axiosInstance.post('/contact', {
+        schoolName,
+        email,
+        phoneNumber,
+        message,
+      })
+
+      toast.success('Your message has been sent. We will get back to you soon.')
+      setForm(initialFormState)
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string } }
+        message?: string
+      }
+
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          'Failed to send your message. Please try again.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-white text-[var(--color-text-dark)]">
       <Navbar hideAnnouncement />
@@ -36,7 +103,7 @@ export default function ContactUsPage() {
                 Our friendly team would love to hear from you.
               </p>
 
-              <form className="mt-8 space-y-4">
+              <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label
                     htmlFor="school-name"
@@ -46,8 +113,12 @@ export default function ContactUsPage() {
                   </label>
                   <input
                     id="school-name"
+                    name="schoolName"
                     type="text"
                     placeholder="Name Here"
+                    value={form.schoolName}
+                    onChange={handleChange}
+                    required
                     className="mt-2 h-9 w-full rounded-none border border-[#CACACA] px-3 text-[13px] outline-none transition focus:border-[var(--color-primary)]"
                   />
                 </div>
@@ -61,8 +132,12 @@ export default function ContactUsPage() {
                   </label>
                   <input
                     id="email"
+                    name="email"
                     type="email"
                     placeholder="hello@example.com"
+                    value={form.email}
+                    onChange={handleChange}
+                    required
                     className="mt-2 h-9 w-full rounded-none border border-[#CACACA] px-3 text-[13px] outline-none transition focus:border-[var(--color-primary)]"
                   />
                 </div>
@@ -76,8 +151,11 @@ export default function ContactUsPage() {
                   </label>
                   <input
                     id="phone"
+                    name="phoneNumber"
                     type="tel"
                     placeholder="+123 4567890"
+                    value={form.phoneNumber}
+                    onChange={handleChange}
                     className="mt-2 h-9 w-full rounded-none border border-[#CACACA] px-3 text-[13px] outline-none transition focus:border-[var(--color-primary)]"
                   />
                 </div>
@@ -91,16 +169,22 @@ export default function ContactUsPage() {
                   </label>
                   <textarea
                     id="message"
+                    name="message"
                     placeholder="Write your message here..."
+                    value={form.message}
+                    onChange={handleChange}
+                    required
                     className="mt-2 min-h-[132px] w-full resize-none rounded-none border border-[#CACACA] px-3 py-3 text-[13px] outline-none transition focus:border-[var(--color-primary)]"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="h-10 w-full rounded-sm bg-[var(--color-primary)] text-[13px] font-bold leading-none tracking-[0] text-white transition hover:bg-[#05314D]"
+                  disabled={isSubmitting}
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-sm bg-[var(--color-primary)] text-[13px] font-bold leading-none tracking-[0] text-white transition hover:bg-[#05314D] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Send Message
+                  {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+                  {isSubmitting ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
             </div>
