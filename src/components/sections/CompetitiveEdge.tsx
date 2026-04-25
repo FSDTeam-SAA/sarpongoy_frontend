@@ -1,13 +1,13 @@
-import Image from "next/image";
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import StatCard from "@/components/ui/StatCard";
+import Image from 'next/image'
+import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
+import StatCard from '@/components/ui/StatCard'
 
 const stats = [
-  { value: "15-30%", label: "higher assessment scores" },
-  { value: "2x faster", label: "topic mastery" },
-  { value: "25-50%", label: "higher lesson completion" },
-];
+  { value: '15-30%', label: 'higher assessment scores' },
+  { value: '2x faster', label: 'curriculum and topic mastery' },
+  { value: '25-50%', label: 'higher lesson completion' },
+]
 
 export default function CompetitiveEdge() {
   return (
@@ -55,12 +55,14 @@ export default function CompetitiveEdge() {
               <StatCard
                 key={stat.value}
                 {...stat}
-                className={index > 0 ? "md:border-l md:border-[#C9C9C9]" : undefined}
+                className={
+                  index > 0 ? 'md:border-l md:border-[#C9C9C9]' : undefined
+                }
               />
             ))}
           </div>
         </div>
       </div>
     </section>
-  );
+  )
 }
