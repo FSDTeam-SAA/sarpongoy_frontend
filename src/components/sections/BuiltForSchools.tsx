@@ -70,11 +70,11 @@ export default function BuiltForSchools() {
   const activeTab = tabs.find(tab => tab.id === activeTabId) ?? tabs[0]
 
   return (
-    <section className="bg-[var(--color-bg-page)] px-4 py-16 sm:px-4">
+    <section className="bg-[var(--color-bg-page)] px-4 py-14 sm:px-4 sm:py-16">
       <div className="mx-auto w-full max-w-[1560px]">
         <div className="text-center">
           <div className="mx-auto mb-4 h-[14px] w-[118px] bg-[var(--color-accent)]" />
-          <h2 className="mx-auto max-w-4xl text-center text-[32px] font-bold leading-[42px] tracking-[0] text-[var(--color-text-dark)] md:text-[36px] md:leading-[48px]">
+          <h2 className="mx-auto max-w-4xl text-center text-[24px] font-bold leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[40px] md:text-[36px] md:leading-[48px]">
             Built for Schools. Designed for Real Learning
           </h2>
         </div>
@@ -95,18 +95,18 @@ export default function BuiltForSchools() {
           <div className="mx-auto mt-[45px] w-full max-w-[1441px] rounded-tr-[32px] rounded-bl-[32px] border border-[#CACACA] bg-[#F8F8F7] px-6 py-8 opacity-100 sm:px-[64px] sm:py-[58px]">
             <div className="grid min-h-[500px] items-center gap-10 lg:grid-cols-[520px_minmax(0,639px)] lg:justify-between">
               <div>
-                <h3 className="[font-family:var(--font-manrope)] text-[32px] font-bold leading-[48px] tracking-[0] text-[var(--color-text-dark)] md:text-[36px] md:leading-[76.8px]">
+                <h3 className="[font-family:var(--font-manrope)] text-[24px] font-bold leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[40px] md:text-[36px] md:leading-[52px]">
                   {activeTab.label}
                 </h3>
 
                 {activeTab.bullets.length > 0 ? (
-                  <ul className="mt-4 list-disc space-y-1 pl-7 [font-family:var(--font-manrope)] text-[22px] font-normal leading-[36px] tracking-[0] text-[#222222] md:text-[24px] md:leading-[40px]">
+                  <ul className="mt-4 list-disc space-y-2 pl-6 [font-family:var(--font-manrope)] text-[16px] font-normal leading-[28px] tracking-[0] text-[#222222] sm:text-[20px] sm:leading-[32px] md:text-[24px] md:leading-[40px]">
                     {activeTab.bullets.map(bullet => (
                       <li key={bullet}>{bullet}</li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-4 max-w-[560px] [font-family:var(--font-manrope)] text-[22px] font-normal leading-[36px] tracking-[0] text-[#222222] md:text-[24px] md:leading-[40px]">
+                  <p className="mt-4 max-w-[560px] [font-family:var(--font-manrope)] text-[16px] font-normal leading-[28px] tracking-[0] text-[#222222] sm:text-[20px] sm:leading-[32px] md:text-[24px] md:leading-[40px]">
                     {activeTab.description}
                   </p>
                 )}

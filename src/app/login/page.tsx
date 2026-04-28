@@ -80,10 +80,10 @@ export default function LoginPage() {
       <AuthLogo />
 
       <div className="mt-8 rounded-2xl border border-[#E5E7EB] bg-white px-6 py-7 shadow-[0_12px_32px_rgba(15,23,42,0.06)] sm:px-8">
-        <h1 className="text-center text-[32px] font-bold leading-[40px] tracking-[0]">
+        <h1 className="text-center text-[26px] font-bold leading-[34px] tracking-[0] sm:text-[32px] sm:leading-[40px]">
           iLearnReady School Portal
         </h1>
-        <p className="mt-3 text-center text-[17px] font-normal leading-[26px] tracking-[0] text-[#6B7280]">
+        <p className="mt-3 text-center text-[15px] font-normal leading-[24px] tracking-[0] text-[#6B7280] sm:text-[17px] sm:leading-[26px]">
           Partner schools can access their accounts below
         </p>
 
@@ -145,7 +145,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-[14px] leading-none">
+        <p className="mt-6 text-center text-[14px] leading-5">
           Don&apos;t have an account?{' '}
           <Link href="/signup" className="font-bold text-[#6A9D23] hover:underline">
             Sign Up Here

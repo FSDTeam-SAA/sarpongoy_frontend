@@ -20,6 +20,12 @@ export const metadata: Metadata = {
   title: "iLearnReady",
   description:
     "A modern digital learning platform for schools, teachers, and students.",
+  icons: {
+    icon: "/images/android-chrome-512x512.png",
+    shortcut: "/images/android-chrome-512x512.png",
+    apple: "/images/apple-touch-icon.png",
+  },
+  manifest: "/images/site.webmanifest",
 };
 
 export default function RootLayout({

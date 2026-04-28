@@ -8,6 +8,13 @@ import AuthLogo from '@/components/auth/AuthLogo'
 import AuthShell from '@/components/auth/AuthShell'
 import { axiosInstance } from '@/lib/axios'
 import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface School {
   _id: string
@@ -40,13 +47,17 @@ export default function SignUpPage() {
     }).catch(() => { })
   }, [])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!form.schoolName) {
+      toast.error('Please select your school')
+      return
+    }
     if (form.password !== form.confirmPassword) {
       toast.error('Passwords do not match')
       return
@@ -87,39 +98,53 @@ export default function SignUpPage() {
       <AuthLogo />
 
       <div className="mt-8 rounded-2xl border border-[#E5E7EB] bg-white px-6 py-7 shadow-[0_12px_32px_rgba(15,23,42,0.06)] sm:px-8">
-        <h1 className="text-center text-[32px] font-bold leading-[40px] tracking-[0]">
+        <h1 className="text-center text-[26px] font-bold leading-[34px] tracking-[0] sm:text-[32px] sm:leading-[40px]">
           iLearnReady School Portal
         </h1>
-        <p className="mt-3 text-center text-[17px] font-normal leading-[26px] tracking-[0] text-[#6B7280]">
+        <p className="mt-3 text-center text-[15px] font-normal leading-[24px] tracking-[0] text-[#6B7280] sm:text-[17px] sm:leading-[26px]">
           Fill the form to access your dashboard
         </p>
 
         <form
           onSubmit={handleSubmit}
-          className="mx-auto mt-10 max-w-[980px] border-l border-[#E5E7EB] pl-6"
+          className="mx-auto mt-10 max-w-[980px] border-t border-[#E5E7EB] pt-6 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0"
         >
-          <h2 className="text-[24px] font-bold leading-none tracking-[0] text-[#4A5565]">
+          <h2 className="text-[22px] font-bold leading-none tracking-[0] text-[#4A5565] sm:text-[24px]">
             Sign Up
           </h2>
 
           <div className="mt-5 space-y-4">
+            {/* School Name - shadcn Select */}
             <div>
-              <label htmlFor="schoolName" className="text-[15px] font-normal leading-none">
+              <label className="text-[15px] font-normal leading-none">
                 School Name
               </label>
-              <select
-                id="schoolName"
-                name="schoolName"
+              <Select
                 value={form.schoolName}
-                onChange={handleChange}
+                onValueChange={value => { if (value) setForm(prev => ({ ...prev, schoolName: value })) }}
                 required
-                className="mt-2 h-12 w-full rounded-sm border border-[#CACACA] bg-white px-4 text-[15px] text-[#6B7280] outline-none focus:border-[var(--color-primary)]"
               >
-                <option value="">Select your school</option>
-                {schools.map(s => (
-                  <option key={s._id} value={s._id}>{s.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="mt-2 h-12 w-full rounded-sm border border-[#CACACA] bg-white px-4 text-[15px] text-[#6B7280] outline-none focus:border-[var(--color-primary)] focus:ring-0 focus:ring-offset-0">
+                  <SelectValue placeholder="Select your school" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[260px] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.12)]">
+                  {schools.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-[14px] text-[#6B7280]">
+                      Loading schools...
+                    </div>
+                  ) : (
+                    schools.map(s => (
+                      <SelectItem
+                        key={s._id}
+                        value={s._id}
+                        className="cursor-pointer rounded px-3 py-2.5 text-[15px] text-[#0F172A] hover:bg-[#F0F7FF] focus:bg-[#F0F7FF]"
+                      >
+                        {s.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">

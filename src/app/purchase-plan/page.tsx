@@ -8,6 +8,13 @@ import AuthShell from '@/components/auth/AuthShell'
 import { axiosInstance } from '@/lib/axios'
 import { getToken, getUser, setUser } from '@/lib/auth-helpers'
 import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 declare global {
   interface Window {
@@ -56,20 +63,18 @@ interface StripeInstance {
 
 type StripeFactory = (publishableKey: string) => StripeInstance
 
-const FALLBACK_STRIPE_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
-  'pk_test_51SSE8YGcSUcKVQJqhrlXPBNVNfDgmhYSMKnGs0kMKeO5CETW0MAiAnU2pGZUv47E9J77jzFptmhg6z7ksJrQ9ihG002z1tUgMm'
+const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
 
 const countryOptions = [
-  { value: 'GB', label: 'United Kingdom' },
-  { value: 'US', label: 'United States' },
-  { value: 'BD', label: 'Bangladesh' },
-  { value: 'GH', label: 'Ghana' },
-  { value: 'AE', label: 'United Arab Emirates' },
-  { value: 'AU', label: 'Australia' },
-  { value: 'CA', label: 'Canada' },
-  { value: 'IN', label: 'India' },
-  { value: 'SG', label: 'Singapore' },
+  { value: 'GB', label: '🇬🇧 United Kingdom' },
+  { value: 'US', label: '🇺🇸 United States' },
+  { value: 'BD', label: '🇧🇩 Bangladesh' },
+  { value: 'GH', label: '🇬🇭 Ghana' },
+  { value: 'AE', label: '🇦🇪 United Arab Emirates' },
+  { value: 'AU', label: '🇦🇺 Australia' },
+  { value: 'CA', label: '🇨🇦 Canada' },
+  { value: 'IN', label: '🇮🇳 India' },
+  { value: 'SG', label: '🇸🇬 Singapore' },
 ]
 
 const paymentSteps = [
@@ -85,7 +90,6 @@ const formatCurrency = (amount: number) =>
     minimumFractionDigits: 2,
   }).format(amount || 0)
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 function loadStripeScript() {
   if (typeof window === 'undefined') return Promise.resolve(null)
@@ -114,28 +118,6 @@ function loadStripeScript() {
   })
 }
 
-async function syncUserAfterPayment() {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    try {
-      const res = await axiosInstance.get('/user/profile')
-      const profile = res.data?.data
-      const storedUser = getUser<UserData>()
-
-      if (profile && storedUser) {
-        setUser({ ...storedUser, ...profile })
-      }
-
-      if (profile?.subscription) return true
-    } catch {
-      // Keep polling briefly to allow the Stripe webhook to sync subscription state.
-    }
-
-    await sleep(1500)
-  }
-
-  return false
-}
-
 export default function PurchasePlanPage() {
   const router = useRouter()
   const cardContainerId = 'purchase-plan-card-element'
@@ -161,31 +143,37 @@ export default function PurchasePlanPage() {
   )
 
   useEffect(() => {
-    const token = getToken()
-    const user = getUser<UserData>()
+    const init = async () => {
+      const token = getToken()
 
-    if (!token) {
-      router.replace('/login')
-      return
-    }
+      if (!token) {
+        router.replace('/login')
+        return
+      }
 
-    if (user?.subscription) {
-      router.replace('/profile')
-      return
-    }
+      // Check subscription from API — not localStorage (which can be stale)
+      try {
+        const res = await axiosInstance.get('/user/profile')
+        const profile = res.data?.data as UserData
+        // Update localStorage with fresh data
+        const stored = getUser<UserData>()
+        if (profile && stored) setUser({ ...stored, ...profile })
+        if (profile?.subscription) {
+          router.replace('/profile')
+          return
+        }
+      } catch {
+        // If API fails, fall through and show the plans page
+      }
 
-    const loadPlans = async () => {
       setLoadingPlans(true)
       try {
         const res = await axiosInstance.get('/subscribe?limit=20&sortBy=months&sortOrder=asc')
         const activePlans = ((res.data?.data as SubscribePlan[]) || []).filter(
           plan => (plan.status || 'active') === 'active',
         )
-
         setPlans(activePlans)
-        if (activePlans[0]) {
-          setSelectedPlanId(activePlans[0]._id)
-        }
+        if (activePlans[0]) setSelectedPlanId(activePlans[0]._id)
       } catch {
         toast.error('Unable to load subscription plans right now.')
       } finally {
@@ -193,8 +181,9 @@ export default function PurchasePlanPage() {
       }
     }
 
-    loadPlans()
+    init()
   }, [router])
+
 
   useEffect(() => {
     let cancelled = false
@@ -204,7 +193,7 @@ export default function PurchasePlanPage() {
         const stripeFactory = await loadStripeScript()
         if (cancelled || !stripeFactory) return
 
-        const stripe = stripeFactory(FALLBACK_STRIPE_PUBLISHABLE_KEY)
+        const stripe = stripeFactory(STRIPE_PUBLISHABLE_KEY)
         const elements = stripe.elements({ locale: 'en' })
         const cardElement = elements.create('card', {
           hidePostalCode: true,
@@ -294,19 +283,23 @@ export default function PurchasePlanPage() {
 
       setStatus({
         type: 'success',
-        message: `Payment successful. Reference: ${paymentIntent.id}`,
+        message: `Payment successful! Activating your plan... Reference: ${paymentIntent.id}`,
       })
 
-      const synced = await syncUserAfterPayment()
+      setStatus({ type: 'loading', message: 'Finalising your subscription...' })
 
-      if (synced) {
-        toast.success('Plan activated successfully.')
-        router.push('/profile')
-        return
+      // Update localStorage with fresh profile data now that payment succeeded
+      try {
+        const res = await axiosInstance.get('/user/profile')
+        const profile = res.data?.data
+        const stored = getUser<UserData>()
+        if (profile && stored) setUser({ ...stored, ...profile })
+      } catch {
+        // Non-fatal — profile page will refetch anyway
       }
 
-      toast.success('Payment completed. Your plan should appear shortly.')
-      router.push('/dashboard/overview')
+      toast.success('Plan activated! Redirecting to your profile...')
+      router.push('/profile')
     } catch (error: unknown) {
       const message =
         (error as { response?: { data?: { message?: string } }; message?: string })
@@ -326,6 +319,7 @@ export default function PurchasePlanPage() {
       <AuthLogo />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+        {/* ─── LEFT: Plan Selection ─── */}
         <section className="rounded-[28px] border border-[#D8E4EC] bg-[linear-gradient(180deg,#F7FBFD_0%,#FFFFFF_100%)] p-6 shadow-[0_24px_60px_rgba(6,61,91,0.08)] sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -386,18 +380,16 @@ export default function PurchasePlanPage() {
                       key={plan._id}
                       type="button"
                       onClick={() => setSelectedPlanId(plan._id)}
-                      className={`rounded-[24px] border p-6 text-left transition ${
-                        isSelected
-                          ? 'border-[#063D5B] bg-[#063D5B] text-white shadow-[0_24px_60px_rgba(6,61,91,0.2)]'
-                          : 'border-[#D8E4EC] bg-white text-[#0F172A] hover:border-[#8AA9BD] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]'
-                      }`}
+                      className={`rounded-[24px] border p-6 text-left transition ${isSelected
+                        ? 'border-[#063D5B] bg-[#063D5B] text-white shadow-[0_24px_60px_rgba(6,61,91,0.2)]'
+                        : 'border-[#D8E4EC] bg-white text-[#0F172A] hover:border-[#8AA9BD] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]'
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p
-                            className={`text-[13px] font-semibold uppercase tracking-[0.18em] ${
-                              isSelected ? 'text-[#BFE7FF]' : 'text-[#6A9D23]'
-                            }`}
+                            className={`text-[13px] font-semibold uppercase tracking-[0.18em] ${isSelected ? 'text-[#BFE7FF]' : 'text-[#6A9D23]'
+                              }`}
                           >
                             {plan.months}-month access
                           </p>
@@ -405,7 +397,7 @@ export default function PurchasePlanPage() {
                         </div>
                         {isSelected ? (
                           <span className="rounded-full bg-white/15 px-3 py-1 text-[12px] font-semibold">
-                            Selected
+                            Selected ✓
                           </span>
                         ) : null}
                       </div>
@@ -422,9 +414,8 @@ export default function PurchasePlanPage() {
                           feature => (
                             <li key={feature} className="flex items-start gap-3 text-[15px] leading-6">
                               <CheckCircle2
-                                className={`mt-0.5 size-5 shrink-0 ${
-                                  isSelected ? 'text-[#A3E635]' : 'text-[#14B88A]'
-                                }`}
+                                className={`mt-0.5 size-5 shrink-0 ${isSelected ? 'text-[#A3E635]' : 'text-[#14B88A]'
+                                  }`}
                               />
                               <span>{feature}</span>
                             </li>
@@ -446,6 +437,7 @@ export default function PurchasePlanPage() {
           </div>
         </section>
 
+        {/* ─── RIGHT: Checkout ─── */}
         <aside className="rounded-[28px] border border-[#D8E4EC] bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-8">
           <div className="flex items-center gap-3">
             <div className="flex size-12 items-center justify-center rounded-2xl bg-[#EEF6FB] text-[#063D5B]">
@@ -459,15 +451,18 @@ export default function PurchasePlanPage() {
             </div>
           </div>
 
+          {/* Order Summary */}
           <div className="mt-8 rounded-[24px] bg-[#F8FAFC] p-5">
-            <div className="flex items-start justify-between gap-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#64748B]">Order Summary</p>
+            <div className="mt-3 flex items-start justify-between gap-4">
               <div>
-                <p className="text-[14px] font-medium text-[#64748B]">Selected plan</p>
-                <p className="mt-1 text-[24px] font-bold text-[#0F172A]">
+                <p className="text-[18px] font-bold text-[#0F172A]">
                   {selectedPlan?.name || 'Choose a plan'}
                 </p>
                 <p className="mt-1 text-[14px] text-[#64748B]">
-                  {selectedPlan ? `${selectedPlan.months} months of school access` : 'Your plan summary will appear here'}
+                  {selectedPlan
+                    ? `${selectedPlan.months} month${selectedPlan.months > 1 ? 's' : ''} of school access`
+                    : 'Your plan summary will appear here'}
                 </p>
               </div>
               <p className="text-[28px] font-bold text-[#063D5B]">
@@ -475,12 +470,16 @@ export default function PurchasePlanPage() {
               </p>
             </div>
 
-            <div className="mt-5 border-t border-[#E2E8F0] pt-5">
+            <div className="mt-5 border-t border-[#E2E8F0] pt-4 space-y-2">
               <div className="flex items-center justify-between text-[14px] text-[#64748B]">
                 <span>Subtotal</span>
                 <span>{formatCurrency(selectedPlan?.price || 0)}</span>
               </div>
-              <div className="mt-3 flex items-center justify-between text-[16px] font-bold text-[#0F172A]">
+              <div className="flex items-center justify-between text-[14px] text-[#64748B]">
+                <span>Tax</span>
+                <span>Included</span>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0] text-[16px] font-bold text-[#0F172A]">
                 <span>Total due today</span>
                 <span>{formatCurrency(selectedPlan?.price || 0)}</span>
               </div>
@@ -488,6 +487,7 @@ export default function PurchasePlanPage() {
           </div>
 
           <div className="mt-8 space-y-5">
+            {/* Cardholder Name */}
             <div>
               <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
                 Name on card
@@ -497,71 +497,84 @@ export default function PurchasePlanPage() {
                 value={cardholderName}
                 onChange={event => setCardholderName(event.target.value)}
                 placeholder="School finance contact"
-                className="mt-2 h-12 w-full rounded-xl border border-[#CBD5E1] px-4 text-[15px] text-[#0F172A] outline-none transition focus:border-[#063D5B]"
+                className="mt-2 h-12 w-full rounded-xl border border-[#CBD5E1] px-4 text-[15px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
               />
             </div>
 
+            {/* Country - shadcn Select */}
             <div>
               <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
                 Country
               </label>
-              <select
-                value={country}
-                onChange={event => setCountry(event.target.value)}
-                className="mt-2 h-12 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-[15px] text-[#0F172A] outline-none transition focus:border-[#063D5B]"
-              >
-                {countryOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={country} onValueChange={(val) => { if (val) setCountry(val) }}>
+                <SelectTrigger className="mt-2 h-12 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-[15px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10 focus:ring-offset-0">
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border border-[#E2E8F0] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
+                  {countryOptions.map(option => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                      className="cursor-pointer rounded-lg px-3 py-2.5 text-[15px] text-[#0F172A] hover:bg-[#F0F7FF] focus:bg-[#F0F7FF]"
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
+            {/* Card Information */}
             <div>
               <div className="flex items-center justify-between gap-3">
                 <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
                   Card information
                 </label>
-                <span className="text-[12px] font-medium text-[#64748B]">Test card: 4242 4242 4242 4242</span>
+                <span className="rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-semibold text-[#16A34A]">
+                  Test: 4242 4242 4242 4242
+                </span>
               </div>
-              <div className="mt-2 rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 focus-within:border-[#063D5B]">
+              <div className="mt-2 rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 transition focus-within:border-[#063D5B] focus-within:ring-2 focus-within:ring-[#063D5B]/10">
                 <div id={cardContainerId} />
               </div>
               {cardError ? <p className="mt-2 text-[13px] text-[#DC2626]">{cardError}</p> : null}
             </div>
           </div>
 
+          {/* Status Banner */}
           {status.type !== 'idle' ? (
             <div
-              className={`mt-6 rounded-2xl border px-4 py-3 text-[14px] ${
-                status.type === 'success'
-                  ? 'border-[#86EFAC] bg-[#F0FDF4] text-[#166534]'
-                  : status.type === 'error'
-                    ? 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'
-                    : 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]'
-              }`}
+              className={`mt-6 rounded-2xl border px-4 py-3.5 text-[14px] leading-6 ${status.type === 'success'
+                ? 'border-[#86EFAC] bg-[#F0FDF4] text-[#166534]'
+                : status.type === 'error'
+                  ? 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'
+                  : 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]'
+                }`}
             >
+              {status.type === 'loading' && (
+                <span className="mr-2 inline-block animate-spin">⏳</span>
+              )}
               {status.message}
             </div>
           ) : null}
 
+          {/* Pay Button */}
           <button
             type="button"
             onClick={handlePayment}
             disabled={!selectedPlan || !stripeReady || submitting || loadingPlans}
-            className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#063D5B] text-[16px] font-semibold text-white transition hover:bg-[#0A557D] disabled:cursor-not-allowed disabled:bg-[#94A3B8]"
+            className="mt-8 flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#063D5B] text-[16px] font-semibold text-white transition hover:bg-[#0A557D] disabled:cursor-not-allowed disabled:bg-[#94A3B8] active:scale-[0.98]"
           >
-            {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
+            {submitting ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
             {submitting
               ? 'Processing payment...'
               : selectedPlan
-                ? `Pay ${formatCurrency(selectedPlan.price)}`
+                ? `Pay ${formatCurrency(selectedPlan.price)} securely`
                 : 'Select a plan to continue'}
           </button>
 
           <p className="mt-4 text-center text-[13px] leading-6 text-[#64748B]">
-            Payments are confirmed through Stripe. Your school subscription updates automatically once the payment
+            🔒 Payments are confirmed through Stripe. Your school subscription updates automatically once the payment
             webhook is received.
           </p>
         </aside>

@@ -69,11 +69,11 @@ export default function SchoolPage() {
 
       <section className="bg-white px-4 py-20">
         <div className="mx-auto max-w-[1120px] text-center">
-          <h2 className="max-w-[1110px] text-[36px] font-medium  leading-[38px] tracking-[0] text-[var(--color-text-dark)] md:text-[36px] md:leading-[44px]">
+          <h2 className="max-w-[1110px] text-[24px] font-medium leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[38px] md:text-[36px] md:leading-[44px]">
             Designed to improve exam readiness, strengthen classroom
             consistency, and elevate overall school performance
           </h2>
-          <p className="mx-auto text-[20px] font-normal mt-8 leading-[30px] tracking-[0] text-[#4A5565] md:text-[20px] md:leading-[34px]">
+          <p className="mx-auto mt-6 text-[16px] font-normal leading-[28px] tracking-[0] text-[#4A5565] sm:mt-8 sm:text-[18px] sm:leading-[30px] md:text-[20px] md:leading-[34px]">
             iLearnReady enables schools to deliver structured, high quality
             education through a digital platform that integrates curriculum
             aligned content with classroom instruction. This approach improves
@@ -83,17 +83,17 @@ export default function SchoolPage() {
         </div>
 
         <div className="mx-auto mt-16 max-w-5xl text-center">
-          <h2 className="text-[32px] font-bold leading-[42px] tracking-[0] text-[var(--color-text-dark)]">
+          <h2 className="text-[24px] font-bold leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[28px] sm:leading-[38px] md:text-[32px] md:leading-[42px]">
             Why Schools Love iLearnReady
           </h2>
-          <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid grid-cols-2 gap-x-2 gap-y-10 px-2 sm:grid-cols-2 sm:gap-x-10 sm:px-0 lg:grid-cols-4">
             {schoolBenefits.map(item => {
               const Icon = item.icon
 
               return (
                 <div key={item.title} className="flex flex-col items-center">
                   <Icon className="size-20 stroke-[1.8] text-[#111111]" />
-                  <p className="mt-5 max-w-[190px] text-center text-[18px] font-normal leading-[26px] tracking-[0] text-[#111111]">
+                  <p className="mt-5 max-w-[190px] text-center text-[16px] font-normal leading-[24px] tracking-[0] text-[#111111] sm:text-[18px] sm:leading-[26px]">
                     {item.title}
                   </p>
                 </div>
@@ -109,7 +109,7 @@ export default function SchoolPage() {
       >
         <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" />
         <div className="relative z-10 mx-auto max-w-[940px] rounded-md bg-white px-6 py-10 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:px-9">
-          <h2 className="text-[34px] font-bold leading-[44px] tracking-[0] text-[var(--color-text-dark)]">
+          <h2 className="text-[24px] font-bold leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[40px] md:text-[34px] md:leading-[44px]">
             How it Works
           </h2>
           <p className="mt-3 text-[16px] font-normal leading-[24px] tracking-[0] text-[#4A5565]">
@@ -125,7 +125,7 @@ export default function SchoolPage() {
                 >
                   {step.number}
                 </span>
-                <p className="text-[16px] font-normal leading-[26px] tracking-[0] text-[#111111]">
+                <p className="text-[15px] font-normal leading-[24px] tracking-[0] text-[#111111] sm:text-[16px] sm:leading-[26px]">
                   <strong className="font-bold">{step.title}</strong>{' '}
                   {step.text}
                 </p>
@@ -146,14 +146,14 @@ export default function SchoolPage() {
 
       <section className="bg-white px-4 py-20">
         <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-[34px] font-semibold leading-[44px] tracking-[0] text-[var(--color-text-dark)]">
+          <h2 className="text-[24px] font-semibold leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[40px] md:text-[34px] md:leading-[44px]">
             Our Ideal Partners
           </h2>
           <div className="mt-10 grid gap-8 md:grid-cols-3">
             {partners.map(partner => (
               <div
                 key={partner}
-                className="mx-auto flex h-[170px] w-full max-w-[380px] items-center justify-center rounded-md bg-[#C94F20] px-10 text-center text-[24px] font-normal leading-[32px] tracking-[0] text-white"
+                className="mx-auto flex h-[170px] w-full max-w-[380px] items-center justify-center rounded-md bg-[#C94F20] px-8 text-center text-[18px] font-normal leading-[28px] tracking-[0] text-white sm:px-10 sm:text-[22px] sm:leading-[30px] md:text-[24px] md:leading-[32px]"
               >
                 {partner}
               </div>

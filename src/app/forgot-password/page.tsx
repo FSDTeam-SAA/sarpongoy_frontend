@@ -33,10 +33,10 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell>
       <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-7 shadow-[0_12px_32px_rgba(15,23,42,0.06)] sm:px-8">
-        <h1 className="text-[32px] font-bold leading-[40px] tracking-[0] text-[var(--color-primary)]">
+        <h1 className="text-[26px] font-bold leading-[34px] tracking-[0] text-[var(--color-primary)] sm:text-[32px] sm:leading-[40px]">
           Forgot Password
         </h1>
-        <p className="mt-3 text-[17px] font-normal leading-[26px] tracking-[0] text-[#6B7280]">
+        <p className="mt-3 text-[15px] font-normal leading-[24px] tracking-[0] text-[#6B7280] sm:text-[17px] sm:leading-[26px]">
           Enter your email to recover your password
         </p>
 

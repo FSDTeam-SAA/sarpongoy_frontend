@@ -21,12 +21,12 @@ export default function StatCard({
       )}
     >
       <div
-        className="text-[54px] font-extrabold leading-[64px] tracking-[0]"
+        className="text-[36px] font-extrabold leading-[44px] tracking-[0] sm:text-[44px] sm:leading-[52px] md:text-[54px] md:leading-[64px]"
         style={{ color }}
       >
         {value}
       </div>
-      <p className="mt-7 max-w-[280px] text-center text-[24px] font-normal leading-[34px] tracking-[0] text-[#111111] md:text-[30px] md:leading-[37px]">
+      <p className="mt-5 max-w-[280px] text-center text-[17px] font-normal leading-[26px] tracking-[0] text-[#111111] sm:mt-6 sm:text-[22px] sm:leading-[30px] md:mt-7 md:text-[30px] md:leading-[37px]">
         {label}
       </p>
     </div>
