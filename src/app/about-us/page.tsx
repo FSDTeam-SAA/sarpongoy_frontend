@@ -220,12 +220,12 @@ export default function AboutUsPage() {
         }}
       >
         <div className="absolute inset-0 bg-black/20" />
-        <div className="relative z-10 mx-auto flex min-h-[228px] max-w-[1060px] items-center">
-          <div className="max-w-[440px] rounded-md bg-white px-6 py-8 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:px-8 sm:py-10">
-            <h2 className="text-[22px] font-bold leading-[30px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[32px] md:text-[26px] md:leading-[36px]">
+        <div className="relative z-10 mx-auto flex min-h-[200px] max-w-[1060px] items-center">
+          <div className="mx-auto max-w-[280px] rounded-md bg-white px-4 py-5 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:mx-0 sm:max-w-[440px] sm:px-8 sm:py-10">
+            <h2 className="text-[18px] font-bold leading-[24px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[32px] md:text-[26px] md:leading-[36px]">
               Flexible School Partnerships
             </h2>
-            <p className="mt-5 text-[16px] font-normal leading-[27px] tracking-[0] text-[#222222] sm:mt-6 sm:text-[17px] sm:leading-[28px] md:text-[18px] md:leading-[30px]">
+            <p className="mt-3 text-[14px] font-normal leading-[22px] tracking-[0] text-[#222222] sm:mt-6 sm:text-[17px] sm:leading-[28px] md:text-[18px] md:leading-[30px]">
               iLearnReady partnerships are structured to align with each
               school&apos;s size and implementation needs.
             </p>
