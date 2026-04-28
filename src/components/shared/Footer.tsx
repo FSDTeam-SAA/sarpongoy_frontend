@@ -12,7 +12,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-[#F4F7FB] px-8 py-12 text-[var(--color-text-dark)]">
+    <footer className="bg-[#F4F7FB] px-4 py-12 text-[var(--color-text-dark)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -30,7 +30,7 @@ export default function Footer() {
                 style={{ transform: 'translate(-32px, -48px)' }}
               />
             </Link>
-            <p className="max-w-xs text-[14px] font-normal leading-none tracking-[0] text-[var(--color-text-muted)]">
+            <p className="max-w-xs text-[14px] font-normal leading-6 tracking-[0] text-[var(--color-text-muted)]">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer
               learning support built for modern classrooms.
             </p>
@@ -86,11 +86,11 @@ export default function Footer() {
                 id="newsletter-email"
                 type="email"
                 placeholder="Enter your email"
-                className="rounded-md border border-[#aaa] bg-white px-3 py-2.5 text-[20px] font-normal leading-none tracking-[0] outline-none transition focus:border-[var(--color-primary)]"
+                className="rounded-md border border-[#aaa] bg-white px-3 py-2.5 text-[15px] font-normal leading-6 tracking-[0] outline-none transition focus:border-[var(--color-primary)] sm:text-[16px]"
               />
               <button
                 type="submit"
-                className="rounded-md border border-[var(--color-primary)] bg-white px-5 py-2.5 text-[20px] font-normal leading-none tracking-[0] text-[var(--color-primary)] transition hover:bg-[var(--color-primary)] hover:text-white"
+                className="rounded-md border border-[var(--color-primary)] bg-white px-5 py-2.5 text-[15px] font-semibold leading-6 tracking-[0] text-[var(--color-primary)] transition hover:bg-[var(--color-primary)] hover:text-white sm:text-[16px]"
               >
                 Subscribe
               </button>
@@ -98,7 +98,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-[rgba(8,82,128,0.14)] pt-6 text-center text-[20px] font-normal leading-none tracking-[0] text-[var(--color-text-muted)]">
+        <div className="mt-10 border-t border-[rgba(8,82,128,0.14)] pt-6 text-center text-[14px] font-normal leading-6 tracking-[0] text-[var(--color-text-muted)] sm:text-[16px]">
           © {currentYear} iLearnReady. All rights reserved.
         </div>
       </div>

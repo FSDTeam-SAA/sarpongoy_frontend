@@ -81,10 +81,10 @@ export default function ContactUsPage() {
         >
           <div className="absolute inset-0 bg-black/55" />
           <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center text-white">
-            <h1 className="text-[38px] font-bold leading-[48px] tracking-[0] md:text-[48px] md:leading-[60px]">
+            <h1 className="text-[28px] font-bold leading-[36px] tracking-[0] sm:text-[38px] sm:leading-[48px] md:text-[48px] md:leading-[60px]">
               Talk to Our Team, Get Clear Answers
             </h1>
-            <p className="mt-3 text-[14px] font-normal leading-[22px] tracking-[0] text-white/80 md:text-[16px]">
+            <p className="mt-3 max-w-[720px] text-[14px] font-normal leading-[22px] tracking-[0] text-white/80 sm:text-[15px] md:text-[16px]">
               Whether you need a product demo, want to start a project, our team
               is here to guide you every step of the way.
             </p>
@@ -96,7 +96,7 @@ export default function ContactUsPage() {
         <div className="mx-auto max-w-[1180px] rounded-[40px] border border-[#E5E5E5] bg-white px-6 py-12 sm:px-10">
           <div className="grid items-center gap-12 lg:grid-cols-[420px_1fr]">
             <div>
-              <h2 className="text-[32px] font-bold leading-[42px] tracking-[0] text-[var(--color-primary)]">
+              <h2 className="text-[24px] font-bold leading-[32px] tracking-[0] text-[var(--color-primary)] sm:text-[28px] sm:leading-[38px] md:text-[32px] md:leading-[42px]">
                 Get in Touch
               </h2>
               <p className="mt-2 text-[13px] font-normal leading-[20px] tracking-[0] text-[#4A5565]">
@@ -202,10 +202,10 @@ export default function ContactUsPage() {
         </div>
 
         <div className="mx-auto mt-10 max-w-[620px] text-center">
-          <h2 className="text-[32px] font-bold leading-[42px] tracking-[0] text-[var(--color-primary)]">
+          <h2 className="text-[24px] font-bold leading-[32px] tracking-[0] text-[var(--color-primary)] sm:text-[28px] sm:leading-[38px] md:text-[32px] md:leading-[42px]">
             Contact Information
           </h2>
-          <div className="mt-8 flex flex-col items-center justify-center gap-5 text-[15px] font-normal leading-none tracking-[0] text-[#111111] sm:flex-row">
+          <div className="mt-8 flex flex-col items-center justify-center gap-4 text-[14px] font-normal leading-6 tracking-[0] text-[#111111] sm:flex-row sm:gap-5 sm:text-[15px]">
             <a
               href="mailto:info@etiaghana.com"
               className="inline-flex items-center gap-2 hover:text-[var(--color-primary)]"

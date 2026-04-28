@@ -59,27 +59,27 @@ export default function AboutUsPage() {
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,47,79,0.72)_0%,rgba(8,47,79,0.35)_45%,rgba(8,47,79,0.08)_100%)]" />
         </div>
 
-        <div className="relative z-10 mx-auto -mt-[108px] max-w-[960px] rounded-tr-[22px] bg-white px-8 py-10 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:px-12">
+        <div className="relative z-10 mx-auto -mt-[108px] max-w-[960px] rounded-tr-[22px] bg-white px-5 py-8 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:px-8 sm:py-10 md:px-12">
           <div className="grid gap-9 md:grid-cols-[1fr_240px]">
             <div>
-              <h1 className="text-[34px] font-bold leading-[44px] tracking-[0] text-[var(--color-text-dark)]">
+              <h1 className="text-[26px] font-bold leading-[34px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[40px] md:text-[34px] md:leading-[44px]">
                 About Us
               </h1>
-              <p className="mt-6 text-[16px] font-normal leading-[26px] tracking-[0] text-[#333333]">
+              <p className="mt-5 text-[15px] font-normal leading-[25px] tracking-[0] text-[#333333] sm:mt-6 sm:text-[16px] sm:leading-[26px]">
                 iLearnReady operations in Ghana are supported by ETIA Ghana
                 Operations Ltd, a subsidiary of the Education Technology
                 Institute of America (ETIA), a Delaware-based organization
                 focused on developing scalable education solutions.
               </p>
-              <p className="mt-5 text-[16px] font-normal leading-[26px] tracking-[0] text-[#333333]">
+              <p className="mt-5 text-[15px] font-normal leading-[25px] tracking-[0] text-[#333333] sm:text-[16px] sm:leading-[26px]">
                 iLearnReady is one of ETIA&apos;s flagship platforms, designed
                 to deliver structured, high-quality learning experiences across
                 emerging markets.
               </p>
             </div>
 
-            <div className="border-l border-[#E0E0E0] pl-6">
-              <div className="flex flex-col gap-9 text-[16px] font-semibold leading-none tracking-[0] text-[#5F6E5E]">
+            <div className="border-t border-[#E0E0E0] pt-6 md:border-l md:border-t-0 md:pl-6 md:pt-0">
+              <div className="flex flex-col gap-5 text-[15px] font-semibold leading-6 tracking-[0] text-[#5F6E5E] sm:text-[16px] sm:leading-none md:gap-9">
                 {focusItems.map(item => (
                   <span
                     key={item}
@@ -101,10 +101,10 @@ export default function AboutUsPage() {
       <section className="bg-white px-4 py-20">
         <div className="mx-auto max-w-[860px] text-center">
           <div className="mx-auto mb-5 h-2.5 w-[82px] bg-[var(--color-accent)]" />
-          <h2 className="text-[30px] font-semibold leading-[40px] tracking-[0] text-[var(--color-text-dark)]">
+          <h2 className="text-[24px] font-semibold leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[28px] sm:leading-[38px] md:text-[30px] md:leading-[40px]">
             Foundational to Modern Education Delivery
           </h2>
-          <p className="mx-auto mt-6 max-w-[720px] text-[18px] font-normal leading-[28px] tracking-[0] text-[#4A5565]">
+          <p className="mx-auto mt-5 max-w-[720px] text-[16px] font-normal leading-[26px] tracking-[0] text-[#4A5565] sm:mt-6 sm:text-[18px] sm:leading-[28px]">
             We play an essential role in supporting schools by providing
             structured, technology enabled learning systems that improve
             consistency and academic outcomes. As education continues to evolve,
@@ -114,20 +114,18 @@ export default function AboutUsPage() {
         </div>
 
         <div className="mx-auto mt-16 max-w-[1180px] rounded-lg border border-[#D8D8D8] bg-white px-5 pb-8 pt-3 shadow-[0_4px_14px_rgba(27,47,91,0.08)]">
-          <h2 className="text-center text-[38px] font-extrabold leading-[48px] tracking-[0] text-[var(--color-text-dark)]">
+          <h2 className="text-center text-[26px] font-extrabold leading-[34px] tracking-[0] text-[var(--color-text-dark)] sm:text-[32px] sm:leading-[42px] md:text-[38px] md:leading-[48px]">
             Our impact at a glance
           </h2>
 
-          <div className="mt-12 rounded-[40px] bg-[#F8F8F7] px-6 py-12">
-            <div className="grid gap-y-10 md:grid-cols-3">
+          <div className="mt-12 rounded-[40px] bg-[#F8F8F7] px-2 py-12 sm:px-6">
+            <div className="grid grid-cols-2 gap-y-10 md:grid-cols-3">
               {impactItems.map((item, index) => {
                 return (
                   <div
                     key={item.title}
-                    className={[
-                      'flex min-h-[154px] flex-col items-center justify-center text-center',
-                      index % 3 !== 0 ? 'md:border-l md:border-[#D4D4D4]' : '',
-                    ].join(' ')}
+                    className={`flex min-h-[154px] flex-col items-center justify-center px-1 text-center sm:px-2 ${index % 3 !== 0 ? 'md:border-l md:border-[#D4D4D4]' : ''
+                      }`}
                   >
                     <Image
                       src={item.icon}
@@ -136,10 +134,10 @@ export default function AboutUsPage() {
                       height={64}
                       className="h-16 w-16 object-contain"
                     />
-                    <h3 className="mt-5 text-[26px] font-extrabold leading-[32px] tracking-[0] text-[var(--color-primary)]">
+                    <h3 className="mt-5 text-[22px] font-extrabold leading-[28px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[30px] md:text-[26px] md:leading-[32px]">
                       {item.title}
                     </h3>
-                    <p className="mt-4 max-w-[220px] text-center text-[17px] font-light leading-[27px] tracking-[0] text-[#111111]">
+                    <p className="mt-4 max-w-[220px] text-center text-[15px] font-light leading-[24px] tracking-[0] text-[#111111] sm:text-[16px] sm:leading-[25px] md:text-[17px] md:leading-[27px]">
                       {item.text}
                     </p>
                   </div>
@@ -154,7 +152,7 @@ export default function AboutUsPage() {
         <div className="mx-auto max-w-[1060px]">
           <div className="text-center">
             <div className="mx-auto mb-5 h-2.5 w-[82px] bg-[var(--color-accent)]" />
-            <h2 className="text-[36px] font-bold leading-[48px] tracking-[0] text-[var(--color-text-dark)]">
+            <h2 className="text-[24px] font-bold leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[40px] md:text-[36px] md:leading-[48px]">
               How we make a difference
             </h2>
           </div>
@@ -168,10 +166,10 @@ export default function AboutUsPage() {
               className="aspect-[430/260] w-full rounded-md object-cover"
             />
             <div>
-              <h3 className="text-[26px] font-bold leading-[36px] tracking-[0] text-[var(--color-primary)]">
+              <h3 className="text-[22px] font-bold leading-[30px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[32px] md:text-[26px] md:leading-[36px]">
                 Driving School Growth and Enrollment
               </h3>
-              <p className="mt-4 text-[18px] font-normal leading-[30px] tracking-[0] text-[#222222]">
+              <p className="mt-4 text-[16px] font-normal leading-[27px] tracking-[0] text-[#222222] sm:text-[17px] sm:leading-[28px] md:text-[18px] md:leading-[30px]">
                 We support schools in strengthening their market position by
                 providing a modern, technology enabled learning experience that
                 differentiates them from competitors. In environments where
@@ -190,10 +188,10 @@ export default function AboutUsPage() {
       <section className="bg-white px-4 py-20">
         <div className="mx-auto grid max-w-[1060px] items-center gap-12 lg:grid-cols-[1fr_430px]">
           <div>
-            <h2 className="text-[26px] font-bold leading-[36px] tracking-[0] text-[var(--color-primary)]">
+            <h2 className="text-[22px] font-bold leading-[30px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[32px] md:text-[26px] md:leading-[36px]">
               Delivering Measurable Academic Impact
             </h2>
-            <p className="mt-5 text-[18px] font-normal leading-[30px] tracking-[0] text-[#222222]">
+            <p className="mt-5 text-[16px] font-normal leading-[27px] tracking-[0] text-[#222222] sm:text-[17px] sm:leading-[28px] md:text-[18px] md:leading-[30px]">
               We focus on outcomes that matter. iLearnReady is designed to
               improve assessment performance, accelerate topic mastery, and
               increase student engagement through structured and consistent
@@ -222,12 +220,12 @@ export default function AboutUsPage() {
         }}
       >
         <div className="absolute inset-0 bg-black/20" />
-        <div className="relative z-10 mx-auto flex min-h-[228px] max-w-[1060px] items-center">
-          <div className="max-w-[440px] rounded-md bg-white px-8 py-10 shadow-[0_10px_30px_rgba(27,47,91,0.12)]">
-            <h2 className="text-[26px] font-bold leading-[36px] tracking-[0] text-[var(--color-primary)]">
+        <div className="relative z-10 mx-auto flex min-h-[200px] max-w-[1060px] items-center">
+          <div className="mx-auto max-w-[280px] rounded-md bg-white px-4 py-5 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:mx-0 sm:max-w-[440px] sm:px-8 sm:py-10">
+            <h2 className="text-[18px] font-bold leading-[24px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[32px] md:text-[26px] md:leading-[36px]">
               Flexible School Partnerships
             </h2>
-            <p className="mt-6 text-[18px] font-normal leading-[30px] tracking-[0] text-[#222222]">
+            <p className="mt-3 text-[14px] font-normal leading-[22px] tracking-[0] text-[#222222] sm:mt-6 sm:text-[17px] sm:leading-[28px] md:text-[18px] md:leading-[30px]">
               iLearnReady partnerships are structured to align with each
               school&apos;s size and implementation needs.
             </p>

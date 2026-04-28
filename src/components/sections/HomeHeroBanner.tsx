@@ -11,7 +11,7 @@ const bannerSlide = {
 export default function HomeHeroBanner() {
   return (
     <section className="pt-[182px]">
-      <div className="relative h-[640px] w-full overflow-hidden rounded-br-[120px] bg-[var(--color-primary)]">
+      <div className="relative h-[540px] w-full overflow-hidden rounded-br-[72px] bg-[var(--color-primary)] sm:h-[600px] sm:rounded-br-[96px] lg:h-[640px] lg:rounded-br-[120px]">
         <CarouselSlide {...bannerSlide} />
       </div>
     </section>

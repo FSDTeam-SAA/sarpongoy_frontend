@@ -92,10 +92,10 @@ export default function VerifyEmailPage() {
   return (
     <AuthShell>
       <div className="rounded-2xl border border-[#E5E7EB] bg-white px-6 py-7 shadow-[0_12px_32px_rgba(15,23,42,0.06)] sm:px-8">
-        <h1 className="text-[32px] font-bold leading-[40px] tracking-[0] text-[var(--color-primary)]">
+        <h1 className="text-[26px] font-bold leading-[34px] tracking-[0] text-[var(--color-primary)] sm:text-[32px] sm:leading-[40px]">
           Verify Email
         </h1>
-        <p className="mt-3 text-[17px] font-normal leading-[26px] tracking-[0] text-[#6B7280]">
+        <p className="mt-3 text-[15px] font-normal leading-[24px] tracking-[0] text-[#6B7280] sm:text-[17px] sm:leading-[26px]">
           Enter OTP to verify your email address
         </p>
         {email && (
@@ -105,7 +105,7 @@ export default function VerifyEmailPage() {
         )}
 
         <form onSubmit={handleVerify}>
-          <div className="mt-8 flex gap-4" onPaste={handlePaste}>
+          <div className="mt-8 flex gap-2 sm:gap-4" onPaste={handlePaste}>
             {otp.map((digit, index) => (
               <input
                 key={index}
@@ -116,7 +116,7 @@ export default function VerifyEmailPage() {
                 value={digit}
                 onChange={e => handleOtpChange(index, e.target.value)}
                 onKeyDown={e => handleKeyDown(index, e)}
-                className="size-12 rounded-sm border border-[#CACACA] text-center text-[24px] font-semibold outline-none focus:border-[var(--color-primary)]"
+                className="size-10 rounded-sm border border-[#CACACA] text-center text-[20px] font-semibold outline-none focus:border-[var(--color-primary)] sm:size-12 sm:text-[24px]"
               />
             ))}
           </div>

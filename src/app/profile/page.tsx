@@ -317,18 +317,23 @@ export default function ProfilePage() {
 
         setUploadingStudents(true)
         try {
+            // First, clear existing students to perform a "replace"
+            await axiosInstance.delete('/exclesheet')
+
             const fd = new FormData()
             fd.append('file', file)
 
-            const res = await axiosInstance.post('/exclesheet/upload', fd, {
+            await axiosInstance.post('/exclesheet/upload', fd, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             })
 
-            toast.success(res.data?.message || 'Students imported successfully')
+            toast.success('Student list replaced successfully!')
             await fetchStudents(1)
+            // Also refresh profile to update "Total Paid" count
+            await fetchProfile()
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } }
-            toast.error(error?.response?.data?.message || 'Failed to upload student file')
+            toast.error(error?.response?.data?.message || 'Failed to replace student list')
         } finally {
             setUploadingStudents(false)
         }
@@ -357,8 +362,8 @@ export default function ProfilePage() {
                     <button
                         onClick={() => setActiveTab('info')}
                         className={`px-6 py-2.5 font-medium transition rounded-l-md ${activeTab === 'info'
-                                ? 'bg-[#063D5B] text-white'
-                                : 'text-[#6B7280] hover:bg-[#F8FAFC]'
+                            ? 'bg-[#063D5B] text-white'
+                            : 'text-[#6B7280] hover:bg-[#F8FAFC]'
                             }`}
                     >
                         Personal Information
@@ -366,8 +371,8 @@ export default function ProfilePage() {
                     <button
                         onClick={() => setActiveTab('password')}
                         className={`px-6 py-2.5 font-medium transition rounded-r-md ${activeTab === 'password'
-                                ? 'bg-[#063D5B] text-white'
-                                : 'text-[#6B7280] hover:bg-[#F8FAFC]'
+                            ? 'bg-[#063D5B] text-white'
+                            : 'text-[#6B7280] hover:bg-[#F8FAFC]'
                             }`}
                     >
                         Change Password
@@ -525,11 +530,10 @@ export default function ProfilePage() {
                                     <button
                                         type="button"
                                         onClick={() => router.push('/purchase-plan')}
-                                        className={`inline-flex h-11 items-center justify-center rounded-md px-5 text-[14px] font-bold transition ${
-                                            isAtCapacity
-                                                ? 'bg-[#F97316] text-white hover:bg-[#EA580C]'
-                                                : 'bg-white text-[#063D5B] hover:bg-[#E6EEF5]'
-                                        }`}
+                                        className={`inline-flex h-11 items-center justify-center rounded-md px-5 text-[14px] font-bold transition ${isAtCapacity
+                                            ? 'bg-[#F97316] text-white hover:bg-[#EA580C]'
+                                            : 'bg-white text-[#063D5B] hover:bg-[#E6EEF5]'
+                                            }`}
                                     >
                                         {isAtCapacity ? 'Limit reached - Upgrade' : 'Upgrade Plan'}
                                     </button>
@@ -659,11 +663,10 @@ export default function ProfilePage() {
                                                         key={item}
                                                         type="button"
                                                         onClick={() => fetchStudents(item)}
-                                                        className={`inline-flex h-8 min-w-8 items-center justify-center rounded-sm border px-2 text-[14px] transition ${
-                                                            item === studentMeta.page
-                                                                ? 'border-[#063D5B] bg-[#063D5B] text-white'
-                                                                : 'border-[#CBD5E1] bg-white text-[#334155] hover:border-[#94A3B8]'
-                                                        }`}
+                                                        className={`inline-flex h-8 min-w-8 items-center justify-center rounded-sm border px-2 text-[14px] transition ${item === studentMeta.page
+                                                            ? 'border-[#063D5B] bg-[#063D5B] text-white'
+                                                            : 'border-[#CBD5E1] bg-white text-[#334155] hover:border-[#94A3B8]'
+                                                            }`}
                                                         aria-label={`Page ${item}`}
                                                     >
                                                         {item}
@@ -737,8 +740,8 @@ export default function ProfilePage() {
                             <label className="text-[14px] font-medium text-[#4A5565]">Confirm New Password</label>
                             <div
                                 className={`mt-2 flex h-11 items-center rounded-sm border px-3 focus-within:border-[var(--color-primary)] ${pwForm.confirmPassword && pwForm.confirmPassword !== pwForm.newPassword
-                                        ? 'border-red-400'
-                                        : 'border-[#CACACA]'
+                                    ? 'border-red-400'
+                                    : 'border-[#CACACA]'
                                     }`}
                             >
                                 <input
