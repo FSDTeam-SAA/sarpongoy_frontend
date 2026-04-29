@@ -19,7 +19,7 @@ const impactItems = [
   {
     icon: '/images/icon2.png',
     title: '2x faster',
-    text: 'topic mastery',
+    text: 'curriculum and topic mastery',
   },
   {
     icon: '/images/icon3.png',
@@ -50,7 +50,7 @@ export default function AboutUsPage() {
 
       <section className="pt-[126px]">
         <div
-          className="relative h-[540px] bg-cover"
+          className="relative h-[320px] bg-cover sm:h-[420px] md:h-[540px]"
           style={{
             backgroundImage: "url('/images/about-us-banner.png')",
             backgroundPosition: 'center 62%',
@@ -78,7 +78,7 @@ export default function AboutUsPage() {
               </p>
             </div>
 
-            <div className="border-t border-[#E0E0E0] pt-6 md:border-l md:border-t-0 md:pl-6 md:pt-0">
+            <div className="hidden md:block border-t border-[#E0E0E0] pt-6 md:border-l md:border-t-0 md:pl-6 md:pt-0">
               <div className="flex flex-col gap-5 text-[15px] font-semibold leading-6 tracking-[0] text-[#5F6E5E] sm:text-[16px] sm:leading-none md:gap-9">
                 {focusItems.map(item => (
                   <span
@@ -213,19 +213,19 @@ export default function AboutUsPage() {
       </section>
 
       <section
-        className="relative min-h-[580px] bg-cover px-4 py-24"
+        className="relative min-h-[400px] bg-cover px-4 py-0 sm:min-h-[580px] sm:py-24"
         style={{
           backgroundImage: "url('/images/partners.png')",
           backgroundPosition: 'center 8%',
         }}
       >
         <div className="absolute inset-0 bg-black/20" />
-        <div className="relative z-10 mx-auto flex min-h-[200px] max-w-[1060px] items-center">
-          <div className="mx-auto max-w-[280px] rounded-md bg-white px-4 py-5 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:mx-0 sm:max-w-[440px] sm:px-8 sm:py-10">
-            <h2 className="text-[18px] font-bold leading-[24px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[32px] md:text-[26px] md:leading-[36px]">
+        <div className="relative z-10 mx-auto flex min-h-[580px] max-w-[1060px] items-end pb-20 sm:min-h-[200px] sm:items-center sm:pb-0">
+          <div className="ml-0 w-full max-w-[270px] rounded-md bg-white px-3 py-4 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:mx-0 sm:max-w-[440px] sm:px-8 sm:py-10">
+            <h2 className="text-[15px] font-bold leading-[20px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[32px] md:text-[26px] md:leading-[36px]">
               Flexible School Partnerships
             </h2>
-            <p className="mt-3 text-[14px] font-normal leading-[22px] tracking-[0] text-[#222222] sm:mt-6 sm:text-[17px] sm:leading-[28px] md:text-[18px] md:leading-[30px]">
+            <p className="mt-2 text-[12px] font-normal leading-[18px] tracking-[0] text-[#222222] sm:mt-6 sm:text-[17px] sm:leading-[28px] md:text-[18px] md:leading-[30px]">
               iLearnReady partnerships are structured to align with each
               school&apos;s size and implementation needs.
             </p>

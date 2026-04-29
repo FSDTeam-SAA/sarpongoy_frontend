@@ -1,13 +1,9 @@
 import Link from 'next/link'
-import {
-  BarChart3,
-  FileText,
-  Layers,
-  MonitorCheck,
-} from 'lucide-react'
+import { BarChart3, FileText, Layers, MonitorCheck } from 'lucide-react'
 import Navbar from '@/components/shared/Navbar'
 import Footer from '@/components/shared/Footer'
 import SchoolHeroCarousel from '@/components/sections/SchoolHeroCarousel'
+import SchoolPartnersSlider from '@/components/sections/SchoolPartnersSlider'
 
 const schoolBenefits = [
   {
@@ -67,13 +63,13 @@ export default function SchoolPage() {
       <Navbar />
       <SchoolHeroCarousel />
 
-      <section className="bg-white px-4 py-20">
+      <section className="bg-white px-4 py-10 sm:py-20">
         <div className="mx-auto max-w-[1120px] text-center">
-          <h2 className="max-w-[1110px] text-[24px] font-medium leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[38px] md:text-[36px] md:leading-[44px]">
+          <h2 className="max-w-[1110px] text-[18px] font-semibold leading-[26px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[38px] md:text-[36px] md:leading-[44px]">
             Designed to improve exam readiness, strengthen classroom
             consistency, and elevate overall school performance
           </h2>
-          <p className="mx-auto mt-6 text-[16px] font-normal leading-[28px] tracking-[0] text-[#4A5565] sm:mt-8 sm:text-[18px] sm:leading-[30px] md:text-[20px] md:leading-[34px]">
+          <p className="mx-auto mt-4 text-[15px] font-normal leading-[24px] tracking-[0] text-[#4A5565] sm:mt-8 sm:text-[18px] sm:leading-[30px] md:text-[20px] md:leading-[34px]">
             iLearnReady enables schools to deliver structured, high quality
             education through a digital platform that integrates curriculum
             aligned content with classroom instruction. This approach improves
@@ -92,8 +88,8 @@ export default function SchoolPage() {
 
               return (
                 <div key={item.title} className="flex flex-col items-center">
-                  <Icon className="size-20 stroke-[1.8] text-[#111111]" />
-                  <p className="mt-5 max-w-[190px] text-center text-[16px] font-normal leading-[24px] tracking-[0] text-[#111111] sm:text-[18px] sm:leading-[26px]">
+                  <Icon className="size-20 stroke-[1.8] text-[#1685C7]" />
+                  <p className="mt-4 max-w-[190px] text-center text-[16px] font-semibold leading-[22px] tracking-[0] text-[#111111] sm:text-[16px] sm:leading-[24px] md:text-[16px] md:leading-[24px]">
                     {item.title}
                   </p>
                 </div>
@@ -149,7 +145,10 @@ export default function SchoolPage() {
           <h2 className="text-[24px] font-semibold leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[40px] md:text-[34px] md:leading-[44px]">
             Our Ideal Partners
           </h2>
-          <div className="mt-10 grid gap-8 md:grid-cols-3">
+          <div className="mt-10 md:hidden">
+            <SchoolPartnersSlider partners={partners} />
+          </div>
+          <div className="mt-10 hidden gap-8 md:grid md:grid-cols-3">
             {partners.map(partner => (
               <div
                 key={partner}
