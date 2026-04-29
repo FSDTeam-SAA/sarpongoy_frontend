@@ -12,7 +12,7 @@ const stats = [
 
 export default function CompetitiveEdge() {
   return (
-    <section className="bg-white px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+    <section className="bg-white px-5 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
       <div className="mx-auto max-w-7xl">
         <div className="text-center">
           <h2 className="[font-family:var(--font-manrope)] text-[28px] font-semibold leading-[36px] tracking-[0] text-[var(--color-text-dark)] sm:text-[38px] sm:leading-[48px] md:text-[56px] md:leading-[76.8px]">
