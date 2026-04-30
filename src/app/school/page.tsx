@@ -82,14 +82,14 @@ export default function SchoolPage() {
           <h2 className="text-[24px] font-bold leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[28px] sm:leading-[38px] md:text-[32px] md:leading-[42px]">
             Why Schools Love iLearnReady
           </h2>
-          <div className="mt-10 grid grid-cols-2 gap-x-2 gap-y-10 px-2 sm:grid-cols-2 sm:gap-x-10 sm:px-0 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 px-1 sm:mt-10 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-10 sm:px-0 lg:grid-cols-4">
             {schoolBenefits.map(item => {
               const Icon = item.icon
 
               return (
                 <div key={item.title} className="flex flex-col items-center">
-                  <Icon className="size-20 stroke-[1.8] text-[#1685C7]" />
-                  <p className="mt-4 max-w-[190px] text-center text-[16px] font-semibold leading-[22px] tracking-[0] text-[#111111] sm:text-[16px] sm:leading-[24px] md:text-[16px] md:leading-[24px]">
+                  <Icon className="size-11 stroke-[1.9] text-[#0B5280] sm:size-14" />
+                  <p className="mt-3 max-w-[146px] text-center text-[14px] font-extrabold leading-[19px] tracking-[0] text-[var(--color-text-dark)] sm:mt-4 sm:max-w-[190px] sm:text-[16px] sm:leading-[24px]">
                     {item.title}
                   </p>
                 </div>

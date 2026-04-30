@@ -12,7 +12,7 @@ const stats = [
 
 export default function CompetitiveEdge() {
   return (
-    <section className="bg-white px-5 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+    <section className="bg-white px-3 py-8 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
       <div className="mx-auto max-w-7xl">
         <div className="text-center">
           <h2 className="[font-family:var(--font-manrope)] text-[28px] font-semibold leading-[36px] tracking-[0] text-[var(--color-text-dark)] sm:text-[38px] sm:leading-[48px] md:text-[56px] md:leading-[76.8px]">
@@ -23,7 +23,7 @@ export default function CompetitiveEdge() {
           </p>
         </div>
 
-        <div className="mt-12 grid items-center gap-10 lg:grid-cols-[639px_1fr]">
+        <div className="mt-8 grid items-center gap-6 sm:mt-12 sm:gap-10 lg:grid-cols-[639px_1fr]">
           <div className="mx-auto h-auto w-full max-w-[639px] overflow-hidden rounded-tl-[32px] rounded-br-[32px]">
             <Image
               src="/images/competitive-image.png"
@@ -42,7 +42,7 @@ export default function CompetitiveEdge() {
             </p>
             <Link
               href="/about-us"
-              className="mt-7 inline-flex items-center gap-3 rounded-md border border-[var(--color-link-inactive)] px-6 py-3 text-base font-semibold text-[var(--color-link-inactive)] transition hover:bg-[var(--color-link-inactive)] hover:text-white"
+              className="mt-5 inline-flex items-center gap-2.5 rounded-md border border-[var(--color-link-inactive)] px-4 py-2 text-sm font-semibold text-[var(--color-link-inactive)] transition hover:bg-[var(--color-link-inactive)] hover:text-white sm:mt-7 sm:gap-3 sm:px-6 sm:py-3 sm:text-base"
             >
               Learn More
               <ChevronRight className="size-5 stroke-[3]" aria-hidden="true" />
@@ -50,7 +50,7 @@ export default function CompetitiveEdge() {
           </div>
         </div>
 
-        <div className="mt-14 overflow-hidden rounded-[32px] bg-[#F8F8F7] px-4 py-6 sm:rounded-[48px] sm:px-6 sm:py-8 lg:rounded-[64px] lg:px-8">
+        <div className="mt-8 overflow-hidden rounded-[22px] bg-[#F8F8F7] px-2 py-3 sm:mt-14 sm:rounded-[48px] sm:px-6 sm:py-8 lg:rounded-[64px] lg:px-8">
           <div className="grid md:grid-cols-3">
             {stats.map((stat, index) => (
               <StatCard
