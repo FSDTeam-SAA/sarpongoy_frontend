@@ -42,7 +42,7 @@ export default function SchoolPartnersSlider({
         className="w-full"
       >
         <CarouselContent>
-          {partners.map((partner, i) => (
+          {partners.map(partner => (
             <CarouselItem key={partner} className="basis-full pl-0">
               <div className="overflow-hidden rounded-lg shadow-md">
                 {/* Card header — colored band */}
