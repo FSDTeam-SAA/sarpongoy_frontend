@@ -221,7 +221,7 @@ export default function AboutUsPage() {
       >
         <div className="absolute inset-0 bg-black/20" />
         <div className="relative z-10 mx-auto flex min-h-[580px] max-w-[1060px] items-end pb-20 sm:min-h-[200px] sm:items-center sm:pb-0">
-          <div className="ml-0 w-full max-w-[270px] rounded-md bg-white px-3 py-4 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:mx-0 sm:max-w-[440px] sm:px-8 sm:py-10">
+          <div className="ml-0 w-full max-w-[320px] rounded-md bg-white px-3 py-4 shadow-[0_10px_30px_rgba(27,47,91,0.12)] sm:mx-0 sm:max-w-[440px] sm:px-8 sm:py-10">
             <h2 className="text-[15px] font-bold leading-[20px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[32px] md:text-[26px] md:leading-[36px]">
               Flexible School Partnerships
             </h2>

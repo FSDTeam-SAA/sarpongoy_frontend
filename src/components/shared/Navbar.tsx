@@ -343,7 +343,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
       </Sheet>
 
       <Dialog open={logoutModalOpen} onOpenChange={setLogoutModalOpen}>
-        <DialogContent className="max-w-[440px] rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.18)]" showCloseButton={false}>
+        <DialogContent className="max-w-[440px] rounded-[24px] border border-[#E5E7EB] bg-white p-[20px] shadow-[0_24px_60px_rgba(15,23,42,0.18)]" showCloseButton={false}>
           <DialogHeader className="gap-0">
             <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-red-50 text-red-500">
               <LogOut className="size-6" />
