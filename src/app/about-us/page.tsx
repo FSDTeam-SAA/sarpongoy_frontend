@@ -113,37 +113,31 @@ export default function AboutUsPage() {
           </p>
         </div>
 
-        <div className="mx-auto mt-16 max-w-[1180px] rounded-lg border border-[#D8D8D8] bg-white px-5 pb-8 pt-3 shadow-[0_4px_14px_rgba(27,47,91,0.08)]">
-          <h2 className="text-center text-[26px] font-extrabold leading-[34px] tracking-[0] text-[var(--color-text-dark)] sm:text-[32px] sm:leading-[42px] md:text-[38px] md:leading-[48px]">
+        <div className="mx-auto mt-16 max-w-5xl text-center">
+          <h2 className="text-[24px] font-bold leading-[32px] tracking-[0] text-[var(--color-text-dark)] sm:text-[28px] sm:leading-[38px] md:text-[32px] md:leading-[42px]">
             Our impact at a glance
           </h2>
 
-          <div className="mt-12 rounded-[40px] bg-[#F8F8F7] px-2 py-12 sm:px-6">
-            <div className="grid grid-cols-2 gap-y-10 md:grid-cols-3">
-              {impactItems.map((item, index) => {
-                return (
-                  <div
-                    key={item.title}
-                    className={`flex min-h-[154px] flex-col items-center justify-center px-1 text-center sm:px-2 ${index % 3 !== 0 ? 'md:border-l md:border-[#D4D4D4]' : ''
-                      }`}
-                  >
-                    <Image
-                      src={item.icon}
-                      alt={item.title}
-                      width={64}
-                      height={64}
-                      className="h-16 w-16 object-contain"
-                    />
-                    <h3 className="mt-5 text-[22px] font-extrabold leading-[28px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[30px] md:text-[26px] md:leading-[32px]">
-                      {item.title}
-                    </h3>
-                    <p className="mt-4 max-w-[220px] text-center text-[15px] font-light leading-[24px] tracking-[0] text-[#111111] sm:text-[16px] sm:leading-[25px] md:text-[17px] md:leading-[27px]">
-                      {item.text}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
+          <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 px-1 sm:mt-10 sm:gap-x-10 sm:gap-y-10 sm:px-0 lg:grid-cols-3">
+            {impactItems.map(item => {
+              return (
+                <div key={item.title} className="flex flex-col items-center">
+                  <Image
+                    src={item.icon}
+                    alt={item.title}
+                    width={64}
+                    height={64}
+                    className="h-16 w-16 object-contain sm:h-[72px] sm:w-[72px]"
+                  />
+                  <h3 className="mt-3 text-center text-[18px] font-extrabold leading-[24px] tracking-[0] text-[var(--color-primary)] sm:mt-4 sm:text-[22px] sm:leading-[28px] md:text-[24px] md:leading-[30px]">
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 max-w-[146px] text-center text-[14px] font-normal leading-[19px] tracking-[0] text-[var(--color-text-dark)] sm:mt-3 sm:max-w-[190px] sm:text-[16px] sm:leading-[24px]">
+                    {item.text}
+                  </p>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -163,9 +157,9 @@ export default function AboutUsPage() {
               alt="Students learning together"
               width={430}
               height={260}
-              className="aspect-[430/260] w-full rounded-md object-cover"
+              className="order-2 aspect-[430/260] w-full rounded-md object-cover lg:order-1"
             />
-            <div>
+            <div className="order-1 lg:order-2">
               <h3 className="text-[22px] font-bold leading-[30px] tracking-[0] text-[var(--color-primary)] sm:text-[24px] sm:leading-[32px] md:text-[26px] md:leading-[36px]">
                 Driving School Growth and Enrollment
               </h3>

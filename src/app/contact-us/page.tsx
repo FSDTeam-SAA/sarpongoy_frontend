@@ -85,8 +85,8 @@ export default function ContactUsPage() {
               Talk to Our Team, Get Clear Answers
             </h1>
             <p className="mt-3 max-w-[720px] text-[14px] font-normal leading-[22px] tracking-[0] text-white/80 sm:text-[15px] md:text-[16px]">
-              Whether you need a product demo, want to start a project, our team
-              is here to guide you every step of the way.
+              Whether you need a product demo or want to start a project, our
+              team is here to guide you every step of the way.
             </p>
           </div>
         </div>
@@ -205,7 +205,7 @@ export default function ContactUsPage() {
           <h2 className="text-[24px] font-bold leading-[32px] tracking-[0] text-[var(--color-primary)] sm:text-[28px] sm:leading-[38px] md:text-[32px] md:leading-[42px]">
             Contact Information
           </h2>
-          <div className="mt-8 flex flex-col items-center justify-center gap-4 text-[14px] font-normal leading-6 tracking-[0] text-[#111111] sm:flex-row sm:gap-5 sm:text-[15px]">
+          <div className="mt-8 flex flex-col items-center justify-center gap-4 text-[14px] font-normal leading-6 tracking-[0] text-[#111111] sm:text-[15px]">
             <a
               href="mailto:info@etiaghana.com"
               className="inline-flex items-center gap-2 hover:text-[var(--color-primary)]"
@@ -213,13 +213,22 @@ export default function ContactUsPage() {
               <Mail className="size-4 text-[var(--color-primary)]" />
               info@etiaghana.com
             </a>
-            <a
-              href="tel:+23354444193"
-              className="inline-flex items-center gap-2 hover:text-[var(--color-primary)]"
-            >
-              <Phone className="size-4 text-[var(--color-primary)]" />
-              +233 54 444 4193 / +233 54 662 2050
-            </a>
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-5">
+              <a
+                href="tel:+233544444193"
+                className="inline-flex items-center gap-2 hover:text-[var(--color-primary)]"
+              >
+                <Phone className="size-4 text-[var(--color-primary)]" />
+                +233 54 444 4193
+              </a>
+              <a
+                href="tel:+233546622050"
+                className="inline-flex items-center gap-2 hover:text-[var(--color-primary)]"
+              >
+                <Phone className="size-4 text-[var(--color-primary)]" />
+                +233 54 662 2050
+              </a>
+            </div>
           </div>
         </div>
       </section>

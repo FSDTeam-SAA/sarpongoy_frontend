@@ -60,7 +60,6 @@ export default function Footer() {
               >
                 Contact Us
               </Link>
-              <p>Linienstrasse 120, Berlin</p>
               <a
                 href="mailto:info@etiaghana.com"
                 className="hover:text-[var(--color-primary)]"
@@ -72,6 +71,12 @@ export default function Footer() {
                 className="hover:text-[var(--color-primary)]"
               >
                 +233 54 444 4193
+              </a>
+              <a
+                href="tel:+233546622050"
+                className="hover:text-[var(--color-primary)]"
+              >
+                +233 54 662 2050
               </a>
             </div>
           </div>
