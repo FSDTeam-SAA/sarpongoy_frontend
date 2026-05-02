@@ -42,7 +42,8 @@ interface UserData {
   role?: string
   subscription?: string
   profilePicture?: string
-  schoolName?: string
+  schoolLogo?: string
+  schoolName?: string | { name?: string }
   firstName?: string
   lastName?: string
 }
@@ -104,9 +105,16 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
     router.push('/')
   }
 
+  const getSchoolName = () => {
+    if (!user?.schoolName) return ''
+    return typeof user.schoolName === 'object' ? user.schoolName.name || '' : user.schoolName
+  }
+
   // Get initials for avatar fallback
   const getInitials = () => {
     if (user?.firstName) return user.firstName[0].toUpperCase()
+    const schoolName = getSchoolName()
+    if (schoolName) return schoolName[0].toUpperCase()
     if (user?.email) return user.email[0].toUpperCase()
     return 'U'
   }
@@ -118,8 +126,9 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
     const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
     if (fullName) return fullName
 
-    if (user?.schoolName && !isMongoObjectId(user.schoolName)) {
-      return user.schoolName
+    const schoolName = getSchoolName()
+    if (schoolName && !isMongoObjectId(schoolName)) {
+      return schoolName
     }
 
     if (user?.email) {
@@ -133,6 +142,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
   }
 
   const userDisplayName = getUserDisplayName()
+  const avatarSrc = user?.profilePicture || user?.schoolLogo
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full shadow-sm">
@@ -177,9 +187,9 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
                 className="flex size-10 items-center justify-center overflow-hidden rounded-full border-2 border-white/30 transition hover:border-white focus:outline-none"
                 aria-label="Profile menu"
               >
-                {user.profilePicture ? (
+                {avatarSrc ? (
                   <Image
-                    src={user.profilePicture}
+                    src={avatarSrc}
                     alt="Profile"
                     width={40}
                     height={40}

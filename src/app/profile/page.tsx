@@ -64,7 +64,7 @@ interface StudentMeta {
     total: number
 }
 
-const STUDENTS_PER_PAGE = 5
+const STUDENTS_PER_PAGE = 10
 
 const PLAN_LABELS: Record<number, string> = {
     50: 'Starter Plan',
