@@ -66,8 +66,7 @@ export default function SchoolPage() {
       <section className="bg-white px-4 py-10 sm:py-20">
         <div className="mx-auto max-w-[1120px] text-center">
           <h2 className="max-w-[1110px] text-[18px] font-semibold leading-[26px] tracking-[0] text-[var(--color-text-dark)] sm:text-[30px] sm:leading-[38px] md:text-[36px] md:leading-[44px]">
-            Designed to improve exam readiness, strengthen classroom
-            consistency, and elevate overall school performance
+            Designed for Forward-Thinking Schools. More Value for Parents.
           </h2>
           <p className="mx-auto mt-4 text-[15px] font-normal leading-[24px] tracking-[0] text-[#4A5565] sm:mt-8 sm:text-[18px] sm:leading-[30px] md:text-[20px] md:leading-[34px]">
             iLearnReady enables schools to deliver structured, high quality

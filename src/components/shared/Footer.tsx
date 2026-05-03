@@ -31,8 +31,7 @@ export default function Footer() {
               />
             </Link>
             <p className="max-w-xs text-[14px] font-normal leading-6 tracking-[0] text-[var(--color-text-muted)]">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer
-              learning support built for modern classrooms.
+              Designed for Forward-Thinking Schools. More Value for Parents.
             </p>
           </div>
 
