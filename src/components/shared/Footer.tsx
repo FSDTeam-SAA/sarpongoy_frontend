@@ -16,10 +16,10 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl">
 
         {/* MAIN GRID */}
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-10 lg:grid-cols-4">
 
           {/* LOGO */}
-          <div>
+          <div className="col-span-2 lg:col-span-1">
             <Link
               href="/"
               aria-label="iLearnReady home"
@@ -79,7 +79,7 @@ export default function Footer() {
           </div>
 
           {/* NEWSLETTER */}
-          <div>
+          <div className="col-span-2 lg:col-span-1">
             <h2 className="mb-4 text-lg font-bold">Newsletter</h2>
 
             <form className="flex flex-col gap-3">

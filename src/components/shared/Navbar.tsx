@@ -59,6 +59,10 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
   const [user, setUser] = useState<UserData | null>(null)
   const [logoutModalOpen, setLogoutModalOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const isSchoolPage = pathname === '/school'
+  const announcementText = isSchoolPage
+    ? 'Designed for Forward-Thinking Schools. More Value for Parents.'
+    : 'Designed to improve exam readiness, strengthen classroom consistency, and elevate overall school performance'
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10)
@@ -422,8 +426,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
           )}
         >
           <span className="mx-auto max-w-full whitespace-normal break-words text-[15px] leading-6 font-light sm:text-[18px] sm:leading-7 lg:text-[20px] lg:leading-8">
-            Designed to improve exam readiness, strengthen classroom
-            consistency, and elevate overall school performance
+            {announcementText}
           </span>
         </div>
       ) : null}
