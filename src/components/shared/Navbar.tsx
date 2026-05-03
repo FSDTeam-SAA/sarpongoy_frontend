@@ -59,7 +59,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
   const [user, setUser] = useState<UserData | null>(null)
   const [logoutModalOpen, setLogoutModalOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const isSchoolPage = pathname === '/school'
+  const isSchoolPage = pathname?.startsWith('/school')
   const announcementText = isSchoolPage
     ? 'Designed for Forward-Thinking Schools. More Value for Parents.'
     : 'Designed to improve exam readiness, strengthen classroom consistency, and elevate overall school performance'
