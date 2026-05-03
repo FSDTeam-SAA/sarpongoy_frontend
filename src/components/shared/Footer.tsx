@@ -36,19 +36,50 @@ export default function Footer() {
           </div>
 
           <div>
-            <h2 className="mb-4 text-lg font-bold">Menu</h2>
-            <div className="flex flex-col gap-3 text-[16px] font-normal leading-none tracking-[0] text-[var(--color-text-muted)]">
-              {menuLinks.map(link => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="hover:text-[var(--color-primary)]"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
+
+<div className="flex flex-row gap-10 md:justify-between">
+  
+  {/* Menu */}
+  <div>
+    <h2 className="mb-4 text-lg font-bold">Menu</h2>
+
+    <div className="flex flex-col gap-3 text-[16px] font-normal text-[var(--color-text-muted)]">
+      {menuLinks.map(link => (
+        <Link
+          key={link.href}
+          href={link.href}
+          className="hover:text-[var(--color-primary)]"
+        >
+          {link.label}
+        </Link>
+      ))}
+    </div>
+  </div>
+
+  {/* Support */}
+  <div>
+    <h2 className="mb-4 text-lg font-bold">Support</h2>
+
+    <div className="flex flex-col gap-3 text-[16px] font-normal text-[var(--color-text-muted)]">
+      <Link href="/contact-us" className="hover:text-[var(--color-primary)]">
+        Contact Us
+      </Link>
+
+      <a href="mailto:info@etiaghana.com" className="hover:text-[var(--color-primary)]">
+        info@etiaghana.com
+      </a>
+
+      <a href="tel:+233544444193" className="hover:text-[var(--color-primary)]">
+        +233 54 444 4193
+      </a>
+
+      <a href="tel:+233546622050" className="hover:text-[var(--color-primary)]">
+        +233 54 662 2050
+      </a>
+    </div>
+  </div>
+
+</div>
 
           <div>
             <h2 className="mb-4 text-lg font-bold">Support</h2>
@@ -78,6 +109,8 @@ export default function Footer() {
                 +233 54 662 2050
               </a>
             </div>
+          </div>
+
           </div>
 
           <div>
