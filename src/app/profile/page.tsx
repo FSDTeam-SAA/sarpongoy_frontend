@@ -18,6 +18,7 @@ import {
 import Navbar from '@/components/shared/Navbar'
 import { axiosInstance } from '@/lib/axios'
 import { getToken, getUser, setUser, logout } from '@/lib/auth-helpers'
+import { normalizeSchoolNameValue, resolveSchoolName, withCacheBuster } from '@/lib/school'
 import { toast } from 'sonner'
 
 interface PasswordRule {
@@ -116,6 +117,7 @@ export default function ProfilePage() {
     })
     const [schoolLogo, setSchoolLogo] = useState<File | null>(null)
     const [logoPreview, setLogoPreview] = useState<string | null>(null)
+    const [logoVersion, setLogoVersion] = useState(Date.now())
     const [signature, setSignature] = useState<File | null>(null)
     const [savingInfo, setSavingInfo] = useState(false)
     const logoRef = useRef<HTMLInputElement>(null)
@@ -138,20 +140,24 @@ export default function ProfilePage() {
         try {
             const res = await axiosInstance.get('/user/profile')
             const data = res.data.data as UserProfile
-            setProfile(data)
+            const resolvedSchoolName = await resolveSchoolName(data.schoolName)
+            const normalizedProfile = {
+                ...data,
+                schoolName: normalizeSchoolNameValue(data.schoolName, resolvedSchoolName),
+            } as UserProfile
+            setProfile(normalizedProfile)
             setForm({
-                phoneNumber: data.phoneNumber || '',
-                bio: data.bio || '',
-                email: data.email || '',
-                schoolNameDisplay: typeof data.schoolName === 'object'
-                    ? data.schoolName?.name || ''
-                    : data.schoolName || '',
+                phoneNumber: normalizedProfile.phoneNumber || '',
+                bio: normalizedProfile.bio || '',
+                email: normalizedProfile.email || '',
+                schoolNameDisplay: resolvedSchoolName,
             })
-            if (data.schoolLogo) setLogoPreview(data.schoolLogo)
+            setLogoPreview(normalizedProfile.schoolLogo || null)
+            setLogoVersion(Date.now())
             // Also refresh user in localStorage
             const storedUser = getUser()
             if (storedUser) {
-                setUser({ ...(storedUser as object), ...data })
+                setUser({ ...(storedUser as object), ...normalizedProfile })
             }
         } catch (err: unknown) {
             const error = err as { response?: { status?: number } }
@@ -201,20 +207,24 @@ export default function ProfilePage() {
             })
             const updated = res.data.data as UserProfile
             const mergedProfile = { ...profile, ...updated } as UserProfile
-            setProfile(mergedProfile)
+            const resolvedSchoolName = await resolveSchoolName(mergedProfile.schoolName)
+            const normalizedProfile = {
+                ...mergedProfile,
+                schoolName: normalizeSchoolNameValue(mergedProfile.schoolName, resolvedSchoolName),
+            } as UserProfile
+            setProfile(normalizedProfile)
             setForm({
-                phoneNumber: mergedProfile.phoneNumber || '',
-                bio: mergedProfile.bio || '',
-                email: mergedProfile.email || '',
-                schoolNameDisplay: typeof mergedProfile.schoolName === 'object'
-                    ? mergedProfile.schoolName?.name || ''
-                    : mergedProfile.schoolName || '',
+                phoneNumber: normalizedProfile.phoneNumber || '',
+                bio: normalizedProfile.bio || '',
+                email: normalizedProfile.email || '',
+                schoolNameDisplay: resolvedSchoolName,
             })
-            if (mergedProfile.schoolLogo) setLogoPreview(mergedProfile.schoolLogo)
+            setLogoPreview(normalizedProfile.schoolLogo || null)
+            setLogoVersion(Date.now())
             setSchoolLogo(null)
             setSignature(null)
             const storedUser = getUser()
-            if (storedUser) setUser({ ...(storedUser as object), ...mergedProfile })
+            if (storedUser) setUser({ ...(storedUser as object), ...normalizedProfile })
             toast.success('Profile updated successfully!')
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } }
@@ -398,7 +408,13 @@ export default function ProfilePage() {
                                         className="relative flex size-20 items-center justify-center overflow-hidden rounded-full bg-[#F3F4F6] transition hover:opacity-80"
                                     >
                                         {logoPreview ? (
-                                            <Image src={logoPreview} alt="Logo" fill className="object-cover" />
+                                            <Image
+                                                src={withCacheBuster(logoPreview, logoVersion)}
+                                                alt="Logo"
+                                                fill
+                                                className="object-cover"
+                                                unoptimized
+                                            />
                                         ) : (
                                             <Upload className="size-6 text-[#9CA3AF]" />
                                         )}

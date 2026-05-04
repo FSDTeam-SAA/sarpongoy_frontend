@@ -29,7 +29,8 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const [form, setForm] = useState({
-    schoolName: '',
+    schoolId: '',
+    selectedSchoolName: '',
     phoneNumber: '',
     email: '',
     password: '',
@@ -54,7 +55,7 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!form.schoolName) {
+    if (!form.schoolId) {
       toast.error('Please select your school')
       return
     }
@@ -70,7 +71,7 @@ export default function SignUpPage() {
     setLoading(true)
     try {
       const fd = new FormData()
-      fd.append('schoolName', form.schoolName)
+      fd.append('schoolName', form.schoolId)
       fd.append('phoneNumber', form.phoneNumber)
       fd.append('email', form.email)
       fd.append('password', form.password)
@@ -120,12 +121,23 @@ export default function SignUpPage() {
                 School Name
               </label>
               <Select
-                value={form.schoolName}
-                onValueChange={value => { if (value) setForm(prev => ({ ...prev, schoolName: value })) }}
+                value={form.schoolId}
+                onValueChange={value => {
+                  const selectedSchool = schools.find(s => s._id === value)
+                  if (!selectedSchool) return
+
+                  setForm(prev => ({
+                    ...prev,
+                    schoolId: selectedSchool._id,
+                    selectedSchoolName: selectedSchool.name,
+                  }))
+                }}
                 required
               >
                 <SelectTrigger className="mt-2 h-12 w-full rounded-sm border border-[#CACACA] bg-white px-4 text-[15px] text-[#6B7280] outline-none focus:border-[var(--color-primary)] focus:ring-0 focus:ring-offset-0">
-                  <SelectValue placeholder="Select your school" />
+                  <SelectValue placeholder="Select your school">
+                    {form.selectedSchoolName || 'Select your school'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-h-[260px] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.12)]">
                   {schools.length === 0 ? (

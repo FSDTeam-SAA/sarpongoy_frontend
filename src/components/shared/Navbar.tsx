@@ -5,8 +5,15 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { getToken, getUser, logout, setUser as setStoredUser } from '@/lib/auth-helpers'
+import {
+  getToken,
+  getUser,
+  logout,
+  setUser as setStoredUser,
+  USER_UPDATED_EVENT,
+} from '@/lib/auth-helpers'
 import { axiosInstance } from '@/lib/axios'
+import { isMongoObjectId, normalizeSchoolNameValue, resolveSchoolName, withCacheBuster } from '@/lib/school'
 import { ChevronRight, LogOut, Menu, ShieldCheck, User } from 'lucide-react'
 import {
   DropdownMenu,
@@ -57,6 +64,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
   const router = useRouter()
   const [isScrolled, setIsScrolled] = useState(false)
   const [user, setUser] = useState<UserData | null>(null)
+  const [avatarVersion, setAvatarVersion] = useState(Date.now())
   const [logoutModalOpen, setLogoutModalOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isSchoolPage = pathname?.startsWith('/school')
@@ -72,26 +80,47 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
   }, [])
 
   useEffect(() => {
+    const syncUserFromStorage = () => {
+      const stored = getUser<UserData>()
+      setUser(stored)
+      setAvatarVersion(Date.now())
+      return stored
+    }
+
     // Set from localStorage immediately for instant render
-    const stored = getUser<UserData>()
-    setUser(stored)
+    const stored = syncUserFromStorage()
+
+    const handleUserUpdated = () => {
+      syncUserFromStorage()
+    }
+
+    window.addEventListener(USER_UPDATED_EVENT, handleUserUpdated)
 
     // Then fetch fresh data from API so subscription is always up-to-date
     const token = getToken()
-    if (!token) return
+    if (!token) {
+      return () => window.removeEventListener(USER_UPDATED_EVENT, handleUserUpdated)
+    }
 
     axiosInstance
       .get('/user/profile')
-      .then(res => {
+      .then(async res => {
         const profile = res.data?.data
         if (!profile) return
-        const merged = { ...(stored ?? {}), ...profile }
+        const resolvedSchoolName = await resolveSchoolName(profile.schoolName)
+        const merged = {
+          ...(stored ?? {}),
+          ...profile,
+          schoolName: normalizeSchoolNameValue(profile.schoolName, resolvedSchoolName),
+        }
         setStoredUser(merged)
         setUser(merged as UserData)
+        setAvatarVersion(Date.now())
       })
       .catch(() => {
         // silently fail — localStorage data already shown
       })
+    return () => window.removeEventListener(USER_UPDATED_EVENT, handleUserUpdated)
   }, [pathname])
 
   const handleProfileNav = () => {
@@ -123,9 +152,6 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
     return 'U'
   }
 
-  const isMongoObjectId = (value?: string) =>
-    Boolean(value && /^[a-fA-F0-9]{24}$/.test(value.trim()))
-
   const getUserDisplayName = () => {
     const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
     if (fullName) return fullName
@@ -146,7 +172,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
   }
 
   const userDisplayName = getUserDisplayName()
-  const avatarSrc = user?.profilePicture || user?.schoolLogo
+  const avatarSrc = withCacheBuster(user?.profilePicture || user?.schoolLogo, avatarVersion)
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full shadow-sm">
@@ -198,6 +224,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
                     width={40}
                     height={40}
                     className="h-full w-full object-cover"
+                    unoptimized
                   />
                 ) : (
                   <span className="flex size-full items-center justify-center bg-[var(--color-accent)] text-[15px] font-bold text-white">
