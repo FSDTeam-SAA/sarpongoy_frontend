@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, CreditCard, Loader2, ShieldCheck, Sparkles } from 'lucide-react'
+import {
+  CheckCircle2,
+  CreditCard,
+  Loader2,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react'
 import AuthLogo from '@/components/auth/AuthLogo'
 import AuthShell from '@/components/auth/AuthShell'
 import { axiosInstance } from '@/lib/axios'
@@ -47,7 +53,10 @@ interface StripeElementsInstance {
 interface StripeCardElementInstance {
   mount: (selector: string) => void
   destroy: () => void
-  on: (event: 'change', handler: (event: { error?: { message?: string } }) => void) => void
+  on: (
+    event: 'change',
+    handler: (event: { error?: { message?: string } }) => void,
+  ) => void
 }
 
 interface StripeInstance {
@@ -63,7 +72,8 @@ interface StripeInstance {
 
 type StripeFactory = (publishableKey: string) => StripeInstance
 
-const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+const STRIPE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
 
 const countryOptions = [
   { value: 'GB', label: '🇬🇧 United Kingdom' },
@@ -80,7 +90,6 @@ const countryOptions = [
 const paymentSteps = [
   'Secure school billing powered by Stripe',
   'Plan access activates automatically after payment confirmation',
-  'Use test card 4242 4242 4242 4242 for demo checkout',
 ]
 
 const formatCurrency = (amount: number) =>
@@ -89,7 +98,6 @@ const formatCurrency = (amount: number) =>
     currency: 'GBP',
     minimumFractionDigits: 2,
   }).format(amount || 0)
-
 
 function loadStripeScript() {
   if (typeof window === 'undefined') return Promise.resolve(null)
@@ -168,7 +176,9 @@ export default function PurchasePlanPage() {
 
       setLoadingPlans(true)
       try {
-        const res = await axiosInstance.get('/subscribe?limit=20&sortBy=months&sortOrder=asc')
+        const res = await axiosInstance.get(
+          '/subscribe?limit=20&sortBy=months&sortOrder=asc',
+        )
         const activePlans = ((res.data?.data as SubscribePlan[]) || []).filter(
           plan => (plan.status || 'active') === 'active',
         )
@@ -183,7 +193,6 @@ export default function PurchasePlanPage() {
 
     init()
   }, [router])
-
 
   useEffect(() => {
     let cancelled = false
@@ -249,20 +258,27 @@ export default function PurchasePlanPage() {
 
     setSubmitting(true)
     setCardError('')
-    setStatus({ type: 'loading', message: 'Creating your secure payment session...' })
+    setStatus({
+      type: 'loading',
+      message: 'Creating your secure payment session...',
+    })
 
     try {
-      const paymentRes = await axiosInstance.post(`/payment/${selectedPlan._id}`)
+      const paymentRes = await axiosInstance.post(
+        `/payment/${selectedPlan._id}`,
+      )
       const paymentData = paymentRes.data?.data as {
         clientSecret: string
         amount: number
       }
 
-      setStatus({ type: 'loading', message: 'Confirming card payment with Stripe...' })
+      setStatus({
+        type: 'loading',
+        message: 'Confirming card payment with Stripe...',
+      })
 
-      const { error, paymentIntent } = await stripeRef.current.confirmCardPayment(
-        paymentData.clientSecret,
-        {
+      const { error, paymentIntent } =
+        await stripeRef.current.confirmCardPayment(paymentData.clientSecret, {
           payment_method: {
             card: cardElementRef.current,
             billing_details: {
@@ -270,15 +286,16 @@ export default function PurchasePlanPage() {
               address: { country },
             },
           },
-        },
-      )
+        })
 
       if (error) {
         throw new Error(error.message || 'Payment confirmation failed.')
       }
 
       if (paymentIntent?.status !== 'succeeded') {
-        throw new Error(`Payment status returned as ${paymentIntent?.status || 'unknown'}.`)
+        throw new Error(
+          `Payment status returned as ${paymentIntent?.status || 'unknown'}.`,
+        )
       }
 
       setStatus({
@@ -302,8 +319,12 @@ export default function PurchasePlanPage() {
       router.push('/profile')
     } catch (error: unknown) {
       const message =
-        (error as { response?: { data?: { message?: string } }; message?: string })
-          ?.response?.data?.message ||
+        (
+          error as {
+            response?: { data?: { message?: string } }
+            message?: string
+          }
+        )?.response?.data?.message ||
         (error as { message?: string })?.message ||
         'Payment could not be completed.'
 
@@ -331,8 +352,9 @@ export default function PurchasePlanPage() {
                 Activate your iLearnReady school workspace
               </h1>
               <p className="mt-4 max-w-2xl text-[16px] leading-7 text-[#475569]">
-                Choose the plan that fits your school calendar, then complete checkout to unlock your dashboard,
-                learner progress tools, live classes, and reporting access.
+                Choose the plan that fits your school calendar, then complete
+                checkout to unlock your dashboard, learner progress tools, live
+                classes, and reporting access.
               </p>
             </div>
 
@@ -342,7 +364,10 @@ export default function PurchasePlanPage() {
               </p>
               <ul className="mt-3 space-y-3">
                 {paymentSteps.map(step => (
-                  <li key={step} className="flex items-start gap-2 text-[14px] leading-5">
+                  <li
+                    key={step}
+                    className="flex items-start gap-2 text-[14px] leading-5"
+                  >
                     <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#A3E635]" />
                     <span>{step}</span>
                   </li>
@@ -353,10 +378,13 @@ export default function PurchasePlanPage() {
 
           <div className="mt-10">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-[20px] font-bold text-[#0F172A]">Available plans</h2>
+              <h2 className="text-[20px] font-bold text-[#0F172A]">
+                Available plans
+              </h2>
               {!loadingPlans && plans.length > 0 ? (
                 <p className="text-[14px] font-medium text-[#64748B]">
-                  {plans.length} option{plans.length > 1 ? 's' : ''} ready for checkout
+                  {plans.length} option{plans.length > 1 ? 's' : ''} ready for
+                  checkout
                 </p>
               ) : null}
             </div>
@@ -380,20 +408,24 @@ export default function PurchasePlanPage() {
                       key={plan._id}
                       type="button"
                       onClick={() => setSelectedPlanId(plan._id)}
-                      className={`rounded-[24px] border p-6 text-left transition ${isSelected
-                        ? 'border-[#063D5B] bg-[#063D5B] text-white shadow-[0_24px_60px_rgba(6,61,91,0.2)]'
-                        : 'border-[#D8E4EC] bg-white text-[#0F172A] hover:border-[#8AA9BD] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]'
-                        }`}
+                      className={`rounded-[24px] border p-6 text-left transition ${
+                        isSelected
+                          ? 'border-[#063D5B] bg-[#063D5B] text-white shadow-[0_24px_60px_rgba(6,61,91,0.2)]'
+                          : 'border-[#D8E4EC] bg-white text-[#0F172A] hover:border-[#8AA9BD] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]'
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p
-                            className={`text-[13px] font-semibold uppercase tracking-[0.18em] ${isSelected ? 'text-[#BFE7FF]' : 'text-[#6A9D23]'
-                              }`}
+                            className={`text-[13px] font-semibold uppercase tracking-[0.18em] ${
+                              isSelected ? 'text-[#BFE7FF]' : 'text-[#6A9D23]'
+                            }`}
                           >
                             {plan.months}-month access
                           </p>
-                          <h3 className="mt-3 text-[28px] font-bold">{plan.name}</h3>
+                          <h3 className="mt-3 text-[28px] font-bold">
+                            {plan.name}
+                          </h3>
                         </div>
                         {isSelected ? (
                           <span className="rounded-full bg-white/15 px-3 py-1 text-[12px] font-semibold">
@@ -403,24 +435,37 @@ export default function PurchasePlanPage() {
                       </div>
 
                       <div className="mt-6 flex items-end gap-2">
-                        <span className="text-[34px] font-bold">{formatCurrency(plan.price)}</span>
-                        <span className={isSelected ? 'pb-1 text-white/70' : 'pb-1 text-[#64748B]'}>
+                        <span className="text-[34px] font-bold">
+                          {formatCurrency(plan.price)}
+                        </span>
+                        <span
+                          className={
+                            isSelected
+                              ? 'pb-1 text-white/70'
+                              : 'pb-1 text-[#64748B]'
+                          }
+                        >
                           one-time payment
                         </span>
                       </div>
 
                       <ul className="mt-6 space-y-3">
-                        {(plan.features?.length ? plan.features : ['Dashboard access', 'Student progress tracking']).map(
-                          feature => (
-                            <li key={feature} className="flex items-start gap-3 text-[15px] leading-6">
-                              <CheckCircle2
-                                className={`mt-0.5 size-5 shrink-0 ${isSelected ? 'text-[#A3E635]' : 'text-[#14B88A]'
-                                  }`}
-                              />
-                              <span>{feature}</span>
-                            </li>
-                          ),
-                        )}
+                        {(plan.features?.length
+                          ? plan.features
+                          : ['Dashboard access', 'Student progress tracking']
+                        ).map(feature => (
+                          <li
+                            key={feature}
+                            className="flex items-start gap-3 text-[15px] leading-6"
+                          >
+                            <CheckCircle2
+                              className={`mt-0.5 size-5 shrink-0 ${
+                                isSelected ? 'text-[#A3E635]' : 'text-[#14B88A]'
+                              }`}
+                            />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
                       </ul>
                     </button>
                   )
@@ -428,9 +473,12 @@ export default function PurchasePlanPage() {
               </div>
             ) : (
               <div className="mt-6 rounded-[24px] border border-dashed border-[#CBD5E1] bg-white px-6 py-10 text-center">
-                <p className="text-[18px] font-semibold text-[#0F172A]">No active plans available right now</p>
+                <p className="text-[18px] font-semibold text-[#0F172A]">
+                  No active plans available right now
+                </p>
                 <p className="mt-2 text-[15px] text-[#64748B]">
-                  Please add an active subscription package from the admin panel and try again.
+                  Please add an active subscription package from the admin panel
+                  and try again.
                 </p>
               </div>
             )}
@@ -447,13 +495,17 @@ export default function PurchasePlanPage() {
               <p className="text-[14px] font-semibold uppercase tracking-[0.14em] text-[#6A9D23]">
                 Secure Checkout
               </p>
-              <h2 className="text-[24px] font-bold text-[#0F172A]">Complete your plan purchase</h2>
+              <h2 className="text-[24px] font-bold text-[#0F172A]">
+                Complete your plan purchase
+              </h2>
             </div>
           </div>
 
           {/* Order Summary */}
           <div className="mt-8 rounded-[24px] bg-[#F8FAFC] p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#64748B]">Order Summary</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+              Order Summary
+            </p>
             <div className="mt-3 flex items-start justify-between gap-4">
               <div>
                 <p className="text-[18px] font-bold text-[#0F172A]">
@@ -506,7 +558,12 @@ export default function PurchasePlanPage() {
               <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
                 Country
               </label>
-              <Select value={country} onValueChange={(val) => { if (val) setCountry(val) }}>
+              <Select
+                value={country}
+                onValueChange={val => {
+                  if (val) setCountry(val)
+                }}
+              >
                 <SelectTrigger className="mt-2 h-12 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-[15px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10 focus:ring-offset-0">
                   <SelectValue placeholder="Select country" />
                 </SelectTrigger>
@@ -530,26 +587,27 @@ export default function PurchasePlanPage() {
                 <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
                   Card information
                 </label>
-                <span className="rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-semibold text-[#16A34A]">
-                  Test: 4242 4242 4242 4242
-                </span>
+                <span className="rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-semibold text-[#16A34A]"></span>
               </div>
               <div className="mt-2 rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 transition focus-within:border-[#063D5B] focus-within:ring-2 focus-within:ring-[#063D5B]/10">
                 <div id={cardContainerId} />
               </div>
-              {cardError ? <p className="mt-2 text-[13px] text-[#DC2626]">{cardError}</p> : null}
+              {cardError ? (
+                <p className="mt-2 text-[13px] text-[#DC2626]">{cardError}</p>
+              ) : null}
             </div>
           </div>
 
           {/* Status Banner */}
           {status.type !== 'idle' ? (
             <div
-              className={`mt-6 rounded-2xl border px-4 py-3.5 text-[14px] leading-6 ${status.type === 'success'
-                ? 'border-[#86EFAC] bg-[#F0FDF4] text-[#166534]'
-                : status.type === 'error'
-                  ? 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'
-                  : 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]'
-                }`}
+              className={`mt-6 rounded-2xl border px-4 py-3.5 text-[14px] leading-6 ${
+                status.type === 'success'
+                  ? 'border-[#86EFAC] bg-[#F0FDF4] text-[#166534]'
+                  : status.type === 'error'
+                    ? 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'
+                    : 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]'
+              }`}
             >
               {status.type === 'loading' && (
                 <span className="mr-2 inline-block animate-spin">⏳</span>
@@ -562,10 +620,16 @@ export default function PurchasePlanPage() {
           <button
             type="button"
             onClick={handlePayment}
-            disabled={!selectedPlan || !stripeReady || submitting || loadingPlans}
-            className="mt-8 flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#063D5B] text-[16px] font-semibold text-white transition hover:bg-[#0A557D] disabled:cursor-not-allowed disabled:bg-[#94A3B8] active:scale-[0.98]"
+            disabled={
+              !selectedPlan || !stripeReady || submitting || loadingPlans
+            }
+            className="mt-8 py-2.5 flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#063D5B] text-[16px] font-semibold text-white transition hover:bg-[#0A557D] disabled:cursor-not-allowed disabled:bg-[#94A3B8] active:scale-[0.98]"
           >
-            {submitting ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
+            {submitting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="size-4" />
+            )}
             {submitting
               ? 'Processing payment...'
               : selectedPlan
@@ -574,8 +638,8 @@ export default function PurchasePlanPage() {
           </button>
 
           <p className="mt-4 text-center text-[13px] leading-6 text-[#64748B]">
-            🔒 Payments are confirmed through Stripe. Your school subscription updates automatically once the payment
-            webhook is received.
+            🔒 Payments are confirmed through Stripe. Your school subscription
+            updates automatically once the payment webhook is received.
           </p>
         </aside>
       </div>
