@@ -12,11 +12,20 @@ export interface SchoolAccessDetails {
   name?: string
   subscribePrice?: number
   NDA?: string
+  termConfig?: {
+    firstTermDueDate?: string
+    secondTermDueDate?: string
+    thirdTermDueDate?: string
+    fullPaymentDueDate?: string
+  }
   school?: Array<string | { _id?: string }>
 }
 
 interface SchoolPaymentAccess {
   hasAccess?: boolean
+  isRestricted?: boolean
+  hasConfiguredDueDate?: boolean
+  reason?: string
 }
 
 export function getAssignedSchoolId(user?: SchoolAccessUser | null) {
@@ -50,6 +59,7 @@ export async function getAssignedSchoolAccess(user?: SchoolAccessUser | null) {
 
   return {
     school,
-    isActive: Boolean(access.hasAccess),
+    isActive: Boolean(access.hasAccess) && !access.isRestricted,
+    access,
   }
 }
