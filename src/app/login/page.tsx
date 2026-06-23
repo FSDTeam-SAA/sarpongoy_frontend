@@ -8,15 +8,15 @@ import AuthLogo from '@/components/auth/AuthLogo'
 import AuthShell from '@/components/auth/AuthShell'
 import { axiosInstance } from '@/lib/axios'
 import { setToken, setUser } from '@/lib/auth-helpers'
+import { getAssignedSchoolAccess, getAssignedSchoolId } from '@/lib/school-access'
 import { toast } from 'sonner'
 
 interface UserData {
   _id: string
   email: string
   role: string
-  subscription?: string
   profilePicture?: string
-  schoolName?: string
+  schoolName?: string | { _id?: string; name?: string }
 }
 
 export default function LoginPage() {
@@ -61,8 +61,14 @@ export default function LoginPage() {
 
       toast.success('Logged in successfully!')
 
-      // Redirect based on subscription
-      if (user.subscription) {
+      const schoolId = getAssignedSchoolId(user)
+      if (!schoolId) {
+        router.push('/signup')
+        return
+      }
+
+      const { isActive } = await getAssignedSchoolAccess(user)
+      if (isActive) {
         router.push('/profile')
       } else {
         router.push('/purchase-plan')

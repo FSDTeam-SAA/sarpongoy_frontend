@@ -9,15 +9,17 @@ import {
     Check,
     X,
     Upload,
-    Calendar,
+    CreditCard,
     Download,
     ChevronLeft,
     ChevronRight,
     Ellipsis,
+    FileText,
 } from 'lucide-react'
 import Navbar from '@/components/shared/Navbar'
 import { axiosInstance } from '@/lib/axios'
 import { getToken, getUser, setUser, logout } from '@/lib/auth-helpers'
+import { getAssignedSchoolAccess } from '@/lib/school-access'
 import { normalizeSchoolNameValue, resolveSchoolName, withCacheBuster } from '@/lib/school'
 import { toast } from 'sonner'
 
@@ -44,10 +46,15 @@ interface UserProfile {
     profilePicture?: string
     uploadeSignature?: string
     totalStudent?: number
-    subscriptionExpiry?: string
     studentList?: unknown[]
-    schoolName?: string | { name?: string }
-    subscription?: string
+    schoolName?: string | { _id?: string; name?: string }
+}
+
+interface SchoolDetails {
+    _id?: string
+    name?: string
+    subscribePrice?: number
+    NDA?: string
 }
 
 interface StudentRow {
@@ -66,18 +73,6 @@ interface StudentMeta {
 }
 
 const STUDENTS_PER_PAGE = 10
-
-const PLAN_LABELS: Record<number, string> = {
-    50: 'Starter Plan',
-    150: 'Growth Plan',
-    300: 'Pro Plan',
-    750: 'Campus Plan',
-}
-
-function getPlanLabel(capacity: number) {
-    if (!capacity) return 'Plan not set'
-    return PLAN_LABELS[capacity] || 'Custom Plan'
-}
 
 function buildPaginationItems(
     currentPage: number,
@@ -107,6 +102,7 @@ export default function ProfilePage() {
     const [studentMeta, setStudentMeta] = useState<StudentMeta>({ page: 1, limit: STUDENTS_PER_PAGE, total: 0 })
     const [loadingStudents, setLoadingStudents] = useState(false)
     const [uploadingStudents, setUploadingStudents] = useState(false)
+    const [schoolDetails, setSchoolDetails] = useState<SchoolDetails | null>(null)
 
     // Personal info form state
     const [form, setForm] = useState({
@@ -140,6 +136,14 @@ export default function ProfilePage() {
         try {
             const res = await axiosInstance.get('/user/profile')
             const data = res.data.data as UserProfile
+            const { school, isActive } = await getAssignedSchoolAccess(data)
+
+            if (!isActive) {
+                toast.warning('Please complete your school payment before accessing settings.')
+                router.replace('/purchase-plan')
+                return
+            }
+
             const resolvedSchoolName = await resolveSchoolName(data.schoolName)
             const normalizedProfile = {
                 ...data,
@@ -154,6 +158,7 @@ export default function ProfilePage() {
             })
             setLogoPreview(normalizedProfile.schoolLogo || null)
             setLogoVersion(Date.now())
+            setSchoolDetails(school)
             // Also refresh user in localStorage
             const storedUser = getUser()
             if (storedUser) {
@@ -270,9 +275,32 @@ export default function ProfilePage() {
         }
     }
 
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return 'N/A'
-        return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    const formatCurrency = (value?: number) =>
+        new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+        }).format(Number(value || 0))
+
+    const isUrl = (value?: string) => Boolean(value && /^(https?:|blob:|data:)\S+/i.test(value.trim()))
+
+    const getApiOrigin = () => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+        return apiUrl.replace(/\/api\/v\d+\/?$/i, '').replace(/\/$/, '')
+    }
+
+    const getNdaUrl = (nda?: string) => {
+        const value = nda?.trim()
+        if (!value) return ''
+        if (isUrl(value)) return value
+        if (value.startsWith('/')) return `${getApiOrigin()}${value}`
+        if (value.includes('/')) return `${getApiOrigin()}/${value.replace(/^\/+/, '')}`
+        return ''
+    }
+
+    const getNdaLabel = (nda?: string) => {
+        if (!nda?.trim()) return 'No NDA available yet.'
+        return getNdaUrl(nda) ? 'View NDA' : 'NDA on file'
     }
 
     const planCapacity = profile?.totalStudent ?? 0
@@ -320,8 +348,7 @@ export default function ProfilePage() {
 
     const handleDemoUpload = async (file: File) => {
         if (isAtCapacity) {
-            toast.warning('You have reached your student limit. Please upgrade your plan.')
-            router.push('/purchase-plan')
+            toast.warning('You have reached your admin-assigned student limit.')
             return
         }
 
@@ -424,9 +451,9 @@ export default function ProfilePage() {
                                 </div>
 
                                 <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-[#E5E7EB] p-4">
-                                    <Calendar className="size-6 text-[#063D5B]" />
-                                    <p className="text-[16px] font-bold text-[#111]">{formatDate(profile?.subscriptionExpiry)}</p>
-                                    <p className="text-[12px] text-[#6B7280]">Expired Date</p>
+                                    <CreditCard className="size-6 text-[#063D5B]" />
+                                    <p className="text-[16px] font-bold text-[#111]">{formatCurrency(schoolDetails?.subscribePrice)}</p>
+                                    <p className="text-[12px] text-[#6B7280]">School Subscription</p>
                                 </div>
 
                                 <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-[#E5E7EB] p-4">
@@ -435,7 +462,7 @@ export default function ProfilePage() {
                                 </div>
 
                                 <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#063D5B] p-4">
-                                    <p className="text-[14px] font-semibold text-white">Total Paid -</p>
+                                    <p className="text-[14px] font-semibold text-white">Imported Students</p>
                                     <p className="text-[28px] font-bold text-white">{profile?.studentList?.length ?? 0}</p>
                                 </div>
                             </div>
@@ -516,23 +543,72 @@ export default function ProfilePage() {
                             </div>
                         </div>
 
+                        <div className="rounded-xl bg-white p-6 shadow-sm">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <h2 className="text-[22px] font-bold text-[#111]">School Agreement</h2>
+                                    <p className="mt-1 text-[14px] text-[#6B7280]">
+                                        Review the admin-assigned school NDA, subscription price, and current student limit.
+                                    </p>
+                                </div>
+                                <span className="inline-flex rounded-full bg-[#E6F4EA] px-3 py-1 text-[12px] font-semibold text-[#2F9E44]">
+                                    Shared with admin
+                                </span>
+                            </div>
+
+                            <div className="mt-6 grid gap-4 md:grid-cols-3">
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                                    <p className="text-[13px] font-medium text-[#6B7280]">Total Students</p>
+                                    <p className="mt-2 text-[28px] font-bold text-[#111]">
+                                        {profile?.totalStudent ?? 0}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                                    <p className="text-[13px] font-medium text-[#6B7280]">Subscription Price</p>
+                                    <p className="mt-2 text-[28px] font-bold text-[#111]">
+                                        {formatCurrency(schoolDetails?.subscribePrice)}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                                    <div className="flex items-center gap-2 text-[13px] font-medium text-[#6B7280]">
+                                        <FileText className="size-4" />
+                                        NDA
+                                    </div>
+                                    {schoolDetails?.NDA ? (
+                                        getNdaUrl(schoolDetails.NDA) ? (
+                                            <a
+                                                href={getNdaUrl(schoolDetails.NDA)}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="mt-2 inline-flex text-[15px] font-semibold text-[#063D5B] transition hover:text-[var(--color-primary)]"
+                                            >
+                                                {getNdaLabel(schoolDetails.NDA)}
+                                            </a>
+                                        ) : (
+                                            <p className="mt-2 max-h-24 overflow-hidden whitespace-pre-wrap text-[15px] leading-6 text-[#111]">
+                                                {getNdaLabel(schoolDetails.NDA)}
+                                            </p>
+                                        )
+                                    ) : (
+                                        <p className="mt-2 text-[15px] text-[#6B7280]">No NDA available yet.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="rounded-xl bg-gradient-to-r from-[#063D5B] to-[#0C6AA0] p-6 text-white shadow-sm">
                             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="max-w-2xl">
                                     <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-white/70">
-                                        Subscription Capacity
+                                        School Capacity
                                     </p>
                                     <h2 className="mt-2 text-[22px] font-bold">
-                                        {getPlanLabel(planCapacity)}
+                                        Admin-managed student limit
                                     </h2>
                                     <p className="mt-2 text-[14px] leading-6 text-white/80">
                                         {usedStudents} of {planCapacity || 0} students used
-                                        {' '}
-                                        <span className="text-white/60">
-                                            {profile?.subscriptionExpiry
-                                                ? `- Expires ${formatDate(profile.subscriptionExpiry)}`
-                                                : '- No expiry set'}
-                                        </span>
                                     </p>
                                     <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/20">
                                         <div
@@ -542,17 +618,8 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
-                                    <button
-                                        type="button"
-                                        onClick={() => router.push('/purchase-plan')}
-                                        className={`inline-flex h-11 items-center justify-center rounded-md px-5 text-[14px] font-bold transition ${isAtCapacity
-                                            ? 'bg-[#F97316] text-white hover:bg-[#EA580C]'
-                                            : 'bg-white text-[#063D5B] hover:bg-[#E6EEF5]'
-                                            }`}
-                                    >
-                                        {isAtCapacity ? 'Limit reached - Upgrade' : 'Upgrade Plan'}
-                                    </button>
+                                <div className="rounded-xl bg-white/10 px-5 py-4 text-[14px] leading-6 text-white/85">
+                                    Student capacity and price are managed by the admin for your school.
                                 </div>
                             </div>
                         </div>
@@ -579,8 +646,7 @@ export default function ProfilePage() {
                                         type="button"
                                         onClick={() => {
                                             if (isAtCapacity) {
-                                                toast.warning('You have reached your student limit. Please upgrade your plan.')
-                                                router.push('/purchase-plan')
+                                                toast.warning('You have reached your admin-assigned student limit.')
                                                 return
                                             }
                                             studentFileRef.current?.click()

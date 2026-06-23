@@ -40,7 +40,13 @@ export function normalizeSchoolNameValue(
   resolvedSchoolName: string,
 ): SchoolNameValue {
   if (!resolvedSchoolName) return schoolName
-  return { name: resolvedSchoolName }
+  if (typeof schoolName === 'object') {
+    return { ...schoolName, name: resolvedSchoolName }
+  }
+  return {
+    _id: isMongoObjectId(schoolName) ? schoolName : undefined,
+    name: resolvedSchoolName,
+  }
 }
 
 export function withCacheBuster(url?: string | null, version?: number): string {
