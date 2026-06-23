@@ -319,13 +319,13 @@ export default function SignUpPage() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#6A9D23]">
-                      School NDA
+                      School Contract
                     </p>
                     <h3 className="mt-1 text-[20px] font-bold leading-7 text-[#063D5B]">
                       {selectedSchoolDetails?.name || form.selectedSchoolName}
                     </h3>
                     <p className="mt-1 text-[14px] font-semibold text-[#4A5565]">
-                      Subscribe price: ${Number(selectedSchoolDetails?.subscribePrice || 0).toLocaleString()}
+                      Per-student charge: ${Number(selectedSchoolDetails?.subscribePrice || 0).toLocaleString()}
                     </p>
                   </div>
                   <span className="flex size-10 items-center justify-center rounded-full bg-[#EAF4FA] text-[#063D5B]">
@@ -335,7 +335,7 @@ export default function SignUpPage() {
 
                 <div className="mt-4 rounded-xl border border-[#DDEBD5] bg-white p-4 shadow-[0_8px_20px_rgba(99,128,68,0.08)]">
                   {schoolDetailsLoading ? (
-                    <p className="text-[15px] font-bold text-[#063D5B]">Loading NDA...</p>
+                    <p className="text-[15px] font-bold text-[#063D5B]">Loading school contract...</p>
                   ) : selectedSchoolDetails?.NDA ? (
                     getNdaUrl(selectedSchoolDetails.NDA) ? (
                       <a
@@ -344,18 +344,18 @@ export default function SignUpPage() {
                         rel="noreferrer"
                         className="inline-flex text-[15px] font-bold text-[#063D5B] underline-offset-4 transition hover:text-[#6A9D23] hover:underline"
                       >
-                        View NDA
+                        View School Contract
                       </a>
                     ) : (
                       <p className="text-[15px] font-bold text-[#9A6B16]">
-                        NDA saved, but no viewable URL found
+                        School contract saved, but no viewable URL found
                       </p>
                     )
                   ) : (
                     <p className="text-[15px] font-bold text-[#9A6B16]">Not available yet</p>
                   )}
                   <p className="mt-2 text-[13px] leading-5 text-[#6B7280]">
-                    Review the school NDA before submitting your signup request.
+                    Review the school contract before submitting your signup request.
                   </p>
                 </div>
               </div>

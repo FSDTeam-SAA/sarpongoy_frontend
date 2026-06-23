@@ -15,7 +15,7 @@ import {
 import { axiosInstance } from '@/lib/axios'
 import { getAssignedSchoolAccess } from '@/lib/school-access'
 import { isMongoObjectId, normalizeSchoolNameValue, resolveSchoolName, withCacheBuster } from '@/lib/school'
-import { ChevronRight, LogOut, Menu, ShieldCheck, User } from 'lucide-react'
+import { ChevronRight, CreditCard, LogOut, Menu, ShieldCheck, User } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -133,6 +133,10 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
     } else {
       router.push('/purchase-plan')
     }
+  }
+
+  const handlePaymentNav = () => {
+    router.push('/purchase-plan')
   }
 
   const confirmLogout = () => {
@@ -265,6 +269,14 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
+                  onClick={handlePaymentNav}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium text-[#334155] hover:bg-[#F8FAFC]"
+                >
+                  <CreditCard className="size-4" />
+                  Payment & Subscription
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
                   onClick={() => setLogoutModalOpen(true)}
                   variant="destructive"
                   className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium text-red-500 hover:bg-red-50 focus:bg-red-50"
@@ -359,6 +371,18 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
                   >
                     <User className="size-4" />
                     {schoolAccessActive ? 'Profile & Settings' : 'Complete Payment'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      handlePaymentNav()
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-left text-[15px] font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
+                  >
+                    <CreditCard className="size-4" />
+                    Payment & Subscription
                   </button>
 
                   <button

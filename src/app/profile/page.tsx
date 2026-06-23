@@ -55,6 +55,45 @@ interface SchoolDetails {
     name?: string
     subscribePrice?: number
     NDA?: string
+    termConfig?: {
+        firstTermDueDate?: string
+        secondTermDueDate?: string
+        thirdTermDueDate?: string
+        fullPaymentDueDate?: string
+    }
+}
+
+interface SchoolPaymentOverview {
+    schoolId?: string
+    schoolName?: string
+    paymentAccessStatus?: 'active' | 'restricted'
+    activeTerm?: 'first_term' | 'second_term' | 'third_term' | 'full_payment' | 'none'
+    overdueTerm?: 'first_term' | 'second_term' | 'third_term' | 'full_payment' | 'none'
+    isRestricted?: boolean
+    reason?: string
+    hasConfiguredDueDate?: boolean
+    totalStudents?: number
+    perStudentCharge?: number
+    totalAmountDue?: number
+    totalCollected?: number
+    balanceDue?: number
+    latestPayment?: {
+        id?: string
+        amount?: number
+        status?: string
+        paymentPlan?: string
+        paymentMethod?: string
+        createdAt?: string
+    } | null
+    paymentHistory?: Array<{
+        id?: string
+        status?: string
+        paymentPlan?: string
+        paymentMethod?: string
+        amount?: number
+        note?: string
+        createdAt?: string
+    }>
 }
 
 interface StudentRow {
@@ -103,6 +142,7 @@ export default function ProfilePage() {
     const [loadingStudents, setLoadingStudents] = useState(false)
     const [uploadingStudents, setUploadingStudents] = useState(false)
     const [schoolDetails, setSchoolDetails] = useState<SchoolDetails | null>(null)
+    const [paymentOverview, setPaymentOverview] = useState<SchoolPaymentOverview | null>(null)
 
     // Personal info form state
     const [form, setForm] = useState({
@@ -136,10 +176,10 @@ export default function ProfilePage() {
         try {
             const res = await axiosInstance.get('/user/profile')
             const data = res.data.data as UserProfile
-            const { school, isActive } = await getAssignedSchoolAccess(data)
+            const { school, isActive, access } = await getAssignedSchoolAccess(data)
 
             if (!isActive) {
-                toast.warning('Please complete your school payment before accessing settings.')
+                toast.warning(access?.reason || 'Please complete your school payment before accessing settings.')
                 router.replace('/purchase-plan')
                 return
             }
@@ -159,6 +199,16 @@ export default function ProfilePage() {
             setLogoPreview(normalizedProfile.schoolLogo || null)
             setLogoVersion(Date.now())
             setSchoolDetails(school)
+            setPaymentOverview(null)
+
+            if (school?._id) {
+                try {
+                    const overviewRes = await axiosInstance.get(`/payment/school/${school._id}/overview`)
+                    setPaymentOverview(overviewRes.data?.data as SchoolPaymentOverview)
+                } catch {
+                    setPaymentOverview(null)
+                }
+            }
             // Also refresh user in localStorage
             const storedUser = getUser()
             if (storedUser) {
@@ -299,12 +349,31 @@ export default function ProfilePage() {
     }
 
     const getNdaLabel = (nda?: string) => {
-        if (!nda?.trim()) return 'No NDA available yet.'
-        return getNdaUrl(nda) ? 'View NDA' : 'NDA on file'
+        if (!nda?.trim()) return 'No school contract available yet.'
+        return getNdaUrl(nda) ? 'View School Contract' : 'School contract on file'
+    }
+
+    const formatAccessStatus = (status?: SchoolPaymentOverview['paymentAccessStatus']) => {
+        if (status === 'restricted') return 'Payment required'
+        if (status === 'active') return 'Access active'
+        return 'Unknown'
+    }
+
+    const formatPaymentPlan = (plan?: string) => {
+        if (plan === 'first_term') return 'First Term'
+        if (plan === 'second_term') return 'Second Term'
+        if (plan === 'third_term') return 'Third Term'
+        if (plan === 'full_year') return 'Full Year'
+        return 'N/A'
+    }
+
+    const formatPaymentStatus = (status?: string) => {
+        if (!status) return 'unknown'
+        return status.replace(/_/g, ' ')
     }
 
     const planCapacity = profile?.totalStudent ?? 0
-    const usedStudents = profile?.studentList?.length ?? 0
+    const usedStudents = studentMeta.total
     const usagePercent = planCapacity > 0 ? Math.min(100, Math.round((usedStudents / planCapacity) * 100)) : 0
     const isAtCapacity = planCapacity > 0 && usedStudents >= planCapacity
 
@@ -463,7 +532,7 @@ export default function ProfilePage() {
 
                                 <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#063D5B] p-4">
                                     <p className="text-[14px] font-semibold text-white">Imported Students</p>
-                                    <p className="text-[28px] font-bold text-white">{profile?.studentList?.length ?? 0}</p>
+                                    <p className="text-[28px] font-bold text-white">{usedStudents}</p>
                                 </div>
                             </div>
 
@@ -548,7 +617,7 @@ export default function ProfilePage() {
                                 <div>
                                     <h2 className="text-[22px] font-bold text-[#111]">School Agreement</h2>
                                     <p className="mt-1 text-[14px] text-[#6B7280]">
-                                        Review the admin-assigned school NDA, subscription price, and current student limit.
+                                        Review the admin-assigned school contract, per-student charge, and current student limit.
                                     </p>
                                 </div>
                                 <span className="inline-flex rounded-full bg-[#E6F4EA] px-3 py-1 text-[12px] font-semibold text-[#2F9E44]">
@@ -574,7 +643,7 @@ export default function ProfilePage() {
                                 <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
                                     <div className="flex items-center gap-2 text-[13px] font-medium text-[#6B7280]">
                                         <FileText className="size-4" />
-                                        NDA
+                                        School Contract
                                     </div>
                                     {schoolDetails?.NDA ? (
                                         getNdaUrl(schoolDetails.NDA) ? (
@@ -592,8 +661,134 @@ export default function ProfilePage() {
                                             </p>
                                         )
                                     ) : (
-                                        <p className="mt-2 text-[15px] text-[#6B7280]">No NDA available yet.</p>
+                                        <p className="mt-2 text-[15px] text-[#6B7280]">No school contract available yet.</p>
                                     )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl bg-white p-6 shadow-sm" id="subscription-payment">
+                            <div className="flex flex-wrap items-start justify-between gap-4">
+                                <div>
+                                    <h2 className="text-[22px] font-bold text-[#111]">Subscription & Payment</h2>
+                                    <p className="mt-1 text-[14px] text-[#6B7280]">
+                                        Review due dates, payment status, and the latest subscription activity.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => router.push('/purchase-plan')}
+                                    className="h-11 rounded-md bg-[#063D5B] px-5 text-[14px] font-bold text-white transition hover:bg-[var(--color-primary)]"
+                                >
+                                    Open Payment Page
+                                </button>
+                            </div>
+
+                            <div className="mt-6 grid gap-4 md:grid-cols-4">
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                                    <p className="text-[13px] font-medium text-[#6B7280]">Access Status</p>
+                                    <p className="mt-2 text-[20px] font-bold text-[#111]">
+                                        {formatAccessStatus(paymentOverview?.paymentAccessStatus)}
+                                    </p>
+                                    <p className="mt-1 text-[12px] text-[#6B7280]">
+                                        {paymentOverview?.reason || 'Due dates and payment status stay synced here.'}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                                    <p className="text-[13px] font-medium text-[#6B7280]">Next Due Term</p>
+                                    <p className="mt-2 text-[20px] font-bold text-[#111]">
+                                        {paymentOverview?.overdueTerm && paymentOverview.overdueTerm !== 'none'
+                                            ? formatPaymentPlan(paymentOverview.overdueTerm)
+                                            : paymentOverview?.activeTerm && paymentOverview.activeTerm !== 'none'
+                                              ? formatPaymentPlan(paymentOverview.activeTerm)
+                                              : 'None'}
+                                    </p>
+                                    <p className="mt-1 text-[12px] text-[#6B7280]">
+                                        {schoolDetails?.termConfig?.fullPaymentDueDate
+                                            ? 'Full payment deadline is configured in school setup.'
+                                            : 'No full payment due date configured.'}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                                    <p className="text-[13px] font-medium text-[#6B7280]">Collected</p>
+                                    <p className="mt-2 text-[20px] font-bold text-[#111]">
+                                        {formatCurrency(paymentOverview?.totalCollected)}
+                                    </p>
+                                    <p className="mt-1 text-[12px] text-[#6B7280]">
+                                        Against {formatCurrency(paymentOverview?.totalAmountDue)} due
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                                    <p className="text-[13px] font-medium text-[#6B7280]">Balance Due</p>
+                                    <p className="mt-2 text-[20px] font-bold text-[#111]">
+                                        {formatCurrency(paymentOverview?.balanceDue)}
+                                    </p>
+                                    <p className="mt-1 text-[12px] text-[#6B7280]">
+                                        {paymentOverview?.latestPayment?.status
+                                            ? `Latest payment: ${formatPaymentStatus(paymentOverview.latestPayment.status)}`
+                                            : 'No completed payment yet.'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1.2fr]">
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                                    <p className="text-[13px] font-medium text-[#6B7280]">Due Dates</p>
+                                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                        {[
+                                            ['First Term', schoolDetails?.termConfig?.firstTermDueDate],
+                                            ['Second Term', schoolDetails?.termConfig?.secondTermDueDate],
+                                            ['Third Term', schoolDetails?.termConfig?.thirdTermDueDate],
+                                            ['Full Payment', schoolDetails?.termConfig?.fullPaymentDueDate],
+                                        ].map(([label, value]) => (
+                                            <div key={label} className="rounded-md bg-white px-3 py-2">
+                                                <p className="text-[12px] font-medium text-[#6B7280]">{label}</p>
+                                                <p className="mt-1 text-[14px] font-semibold text-[#0A0A0B]">
+                                                    {value ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set'}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-[13px] font-medium text-[#6B7280]">Recent Payment Activity</p>
+                                        <p className="text-[12px] font-medium text-[#64748B]">
+                                            {paymentOverview?.paymentHistory?.length || 0} items
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-3 space-y-3">
+                                        {paymentOverview?.paymentHistory?.length ? (
+                                            paymentOverview.paymentHistory.slice(0, 4).map(item => (
+                                                <div key={item.id} className="rounded-md bg-white px-3 py-2">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <p className="text-[14px] font-semibold text-[#0A0A0B]">
+                                                            {formatPaymentPlan(item.paymentPlan)}
+                                                        </p>
+                                                        <span className="rounded-full bg-[#EEF6FB] px-2 py-0.5 text-[11px] font-semibold text-[#063D5B]">
+                                                            {formatPaymentStatus(item.status)}
+                                                        </span>
+                                                    </div>
+                                                    <p className="mt-1 text-[12px] text-[#6B7280]">
+                                                        {formatCurrency(item.amount)} · {item.paymentMethod || 'system'}
+                                                        {item.createdAt ? ` · ${new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
+                                                    </p>
+                                                    {item.note ? (
+                                                        <p className="mt-1 text-[12px] text-[#475569]">{item.note}</p>
+                                                    ) : null}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="rounded-md bg-white px-3 py-4 text-[13px] text-[#6B7280]">
+                                                No payment activity yet.
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

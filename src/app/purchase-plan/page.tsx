@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CreditCard, Loader2, ShieldCheck, Sparkles } from 'lucide-react'
+import {
+  CalendarDays,
+  CreditCard,
+  Landmark,
+  Loader2,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react'
 import AuthLogo from '@/components/auth/AuthLogo'
 import AuthShell from '@/components/auth/AuthShell'
 import { axiosInstance } from '@/lib/axios'
@@ -34,6 +41,7 @@ interface CheckoutPlan {
 interface UserData {
   _id?: string
   email?: string
+  totalStudent?: number
   schoolName?: string | { _id?: string; name?: string }
 }
 
@@ -66,24 +74,51 @@ interface StripeInstance {
 
 type StripeFactory = (publishableKey: string) => StripeInstance
 
+type PaymentPlan = 'first_term' | 'second_term' | 'third_term' | 'full_year'
+type PaymentMethod = 'card' | 'offline'
+
 const STRIPE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
 
-const countryOptions = [
-  { value: 'GB', label: '🇬🇧 United Kingdom' },
-  { value: 'US', label: '🇺🇸 United States' },
-  { value: 'BD', label: '🇧🇩 Bangladesh' },
-  { value: 'GH', label: '🇬🇭 Ghana' },
-  { value: 'AE', label: '🇦🇪 United Arab Emirates' },
-  { value: 'AU', label: '🇦🇺 Australia' },
-  { value: 'CA', label: '🇨🇦 Canada' },
-  { value: 'IN', label: '🇮🇳 India' },
-  { value: 'SG', label: '🇸🇬 Singapore' },
+const paymentPlanOptions: Array<{
+  value: PaymentPlan
+  label: string
+  helper: string
+}> = [
+  {
+    value: 'first_term',
+    label: 'First Term',
+    helper: 'Pay one third of the school year total.',
+  },
+  {
+    value: 'second_term',
+    label: 'Second Term',
+    helper: 'Pay one third of the school year total.',
+  },
+  {
+    value: 'third_term',
+    label: 'Third Term',
+    helper: 'Pay one third of the school year total.',
+  },
+  {
+    value: 'full_year',
+    label: 'Full School Year',
+    helper: 'Pay the full calculated school year total.',
+  },
+]
+
+const termDueDateFields: Array<{
+  key: 'firstTerm' | 'secondTerm' | 'thirdTerm'
+  label: string
+}> = [
+  { key: 'firstTerm', label: 'First Term Due Date' },
+  { key: 'secondTerm', label: 'Second Term Due Date' },
+  { key: 'thirdTerm', label: 'Third Term Due Date' },
 ]
 
 const paymentSteps = [
-  'Secure school billing powered by Stripe',
-  'School access activates automatically after payment confirmation',
+  'Card payments activate automatically after Stripe confirmation',
+  'Offline payments activate after admin approval',
 ]
 
 const formatCurrency = (amount: number) =>
@@ -92,6 +127,17 @@ const formatCurrency = (amount: number) =>
     currency: 'GBP',
     minimumFractionDigits: 2,
   }).format(amount || 0)
+
+const formatDate = (value?: string) => {
+  if (!value) return 'Not set'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Not set'
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
 
 const delay = (ms: number) =>
   new Promise(resolve => window.setTimeout(resolve, ms))
@@ -138,16 +184,19 @@ export default function PurchasePlanPage() {
   const [loadingPlans, setLoadingPlans] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [stripeReady, setStripeReady] = useState(false)
+  const [accessNotice, setAccessNotice] = useState('')
+  const [activeTab, setActiveTab] = useState<'details' | 'checkout'>('details')
   const [billingEmail, setBillingEmail] = useState('')
   const [cardholderName, setCardholderName] = useState('')
-  const [country, setCountry] = useState('GB')
-  const [billingAddress, setBillingAddress] = useState({
-    line1: '',
-    line2: '',
-    city: '',
-    state: '',
-    postalCode: '',
+  const [totalStudents, setTotalStudents] = useState(0)
+  const [paymentPlan, setPaymentPlan] = useState<PaymentPlan>('full_year')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card')
+  const [termDueDates, setTermDueDates] = useState({
+    firstTerm: '',
+    secondTerm: '',
+    thirdTerm: '',
   })
+  const [offlinePaymentNote, setOfflinePaymentNote] = useState('')
   const [status, setStatus] = useState<{
     type: 'idle' | 'loading' | 'success' | 'error'
     message: string
@@ -162,6 +211,18 @@ export default function PurchasePlanPage() {
     () => plans.find(plan => plan._id === selectedPlanId) || null,
     [plans, selectedPlanId],
   )
+
+  const perStudentCharge = selectedPlan?.price || 0
+  const calculatedTotalAmount = Number(
+    (totalStudents * perStudentCharge).toFixed(2),
+  )
+  const selectedPaymentAmount =
+    paymentPlan === 'full_year'
+      ? calculatedTotalAmount
+      : Number((calculatedTotalAmount / 3).toFixed(2))
+  const selectedPaymentPlanLabel =
+    paymentPlanOptions.find(option => option.value === paymentPlan)?.label ||
+    'Full School Year'
 
   useEffect(() => {
     const init = async () => {
@@ -178,13 +239,15 @@ export default function PurchasePlanPage() {
         const stored = getUser<UserData>()
         const checkoutEmail = profile?.email || stored?.email || ''
         if (checkoutEmail) setBillingEmail(checkoutEmail)
+        setTotalStudents(Number(profile?.totalStudent || 0))
         if (profile && stored) setUser({ ...stored, ...profile })
 
         const { school, isActive } = await getAssignedSchoolAccess(profile)
-        if (isActive) {
-          router.replace('/profile')
-          return
-        }
+        setAccessNotice(
+          isActive
+            ? 'Your school access is active. You can still review subscription details or renew early.'
+            : 'Your school access is restricted until payment is completed or approved.',
+        )
 
         if (!school?._id) {
           toast.error('No assigned school found for this account.')
@@ -193,6 +256,11 @@ export default function PurchasePlanPage() {
         }
 
         const price = Number(school.subscribePrice || 0)
+        setTermDueDates({
+          firstTerm: school.termConfig?.firstTermDueDate || '',
+          secondTerm: school.termConfig?.secondTermDueDate || '',
+          thirdTerm: school.termConfig?.thirdTermDueDate || '',
+        })
         setPlans([
           {
             _id: school._id,
@@ -211,6 +279,7 @@ export default function PurchasePlanPage() {
       } catch {
         const stored = getUser<UserData>()
         if (stored?.email) setBillingEmail(stored.email)
+        setTotalStudents(Number(stored?.totalStudent || 0))
         toast.error('Unable to load your assigned school subscription.')
       } finally {
         setLoadingPlans(false)
@@ -249,7 +318,7 @@ export default function PurchasePlanPage() {
         })
         const cardExpiryElement = elements.create('cardExpiry', {
           ...elementStyle,
-          placeholder: 'MM / YY',
+          placeholder: 'MM / YYYY',
         })
         const cardCvcElement = elements.create('cardCvc', {
           ...elementStyle,
@@ -315,11 +384,19 @@ export default function PurchasePlanPage() {
     }
 
     if (selectedPlan.price <= 0) {
-      toast.error('This school does not have a valid subscription price yet.')
+      toast.error('This school does not have a valid per-student charge yet.')
       return
     }
 
-    if (!stripeRef.current || !cardNumberElementRef.current) {
+    if (totalStudents <= 0) {
+      toast.error('This school does not have total students set yet.')
+      return
+    }
+
+    if (
+      paymentMethod === 'card' &&
+      (!stripeRef.current || !cardNumberElementRef.current)
+    ) {
       toast.error('Stripe checkout is still loading.')
       return
     }
@@ -329,7 +406,7 @@ export default function PurchasePlanPage() {
       return
     }
 
-    if (!cardholderName.trim()) {
+    if (paymentMethod === 'card' && !cardholderName.trim()) {
       toast.error('Please enter the name on card.')
       return
     }
@@ -338,16 +415,35 @@ export default function PurchasePlanPage() {
     setCardErrors({ number: '', expiry: '', cvc: '' })
     setStatus({
       type: 'loading',
-      message: 'Creating your secure payment session...',
+      message:
+        paymentMethod === 'offline'
+          ? 'Submitting offline payment request...'
+          : 'Creating your secure payment session...',
     })
 
     try {
-      const paymentRes = await axiosInstance.post(
-        `/payment/school/${selectedPlan._id}`,
-      )
-      const paymentData = paymentRes.data?.data as {
-        clientSecret: string
-        amount: number
+      const paymentPayload = { paymentPlan }
+
+      if (paymentMethod === 'offline') {
+        await axiosInstance.post(`/payment/school/${selectedPlan._id}/offline`, {
+          ...paymentPayload,
+          offlinePaymentNote,
+        })
+
+        setStatus({
+          type: 'success',
+          message:
+            'Offline payment request submitted. Your school access will activate automatically after admin approval.',
+        })
+        toast.success('Offline payment request submitted for admin approval.')
+        return
+      }
+
+      const stripe = stripeRef.current
+      const cardNumberElement = cardNumberElementRef.current
+
+      if (!stripe || !cardNumberElement) {
+        throw new Error('Stripe checkout is still loading.')
       }
 
       setStatus({
@@ -355,24 +451,41 @@ export default function PurchasePlanPage() {
         message: 'Confirming card payment with Stripe...',
       })
 
-      const { error, paymentIntent } =
-        await stripeRef.current.confirmCardPayment(paymentData.clientSecret, {
+      const createPaymentIntent = async (forceNew = false) => {
+        const paymentRes = await axiosInstance.post(
+          `/payment/school/${selectedPlan._id}`,
+          { ...paymentPayload, forceNew },
+        )
+        return paymentRes.data?.data as {
+          clientSecret: string
+          amount: number
+        }
+      }
+
+      const confirmPayment = async (clientSecret: string) =>
+        stripe.confirmCardPayment(clientSecret, {
           payment_method: {
-            card: cardNumberElementRef.current,
+            card: cardNumberElement,
             billing_details: {
               name: cardholderName.trim(),
               email: billingEmail.trim(),
-              address: {
-                country,
-                line1: billingAddress.line1.trim() || undefined,
-                line2: billingAddress.line2.trim() || undefined,
-                city: billingAddress.city.trim() || undefined,
-                state: billingAddress.state.trim() || undefined,
-                postal_code: billingAddress.postalCode.trim() || undefined,
-              },
             },
           },
         })
+
+      const paymentData = await createPaymentIntent()
+      let { error, paymentIntent } = await confirmPayment(paymentData.clientSecret)
+
+      if (error?.message?.includes('No such payment_intent')) {
+        setStatus({
+          type: 'loading',
+          message: 'Refreshing checkout session and retrying payment...',
+        })
+        const refreshedPaymentData = await createPaymentIntent(true)
+        const retried = await confirmPayment(refreshedPaymentData.clientSecret)
+        error = retried.error
+        paymentIntent = retried.paymentIntent
+      }
 
       if (error) {
         throw new Error(error.message || 'Payment confirmation failed.')
@@ -448,66 +561,91 @@ export default function PurchasePlanPage() {
     <AuthShell maxWidth="max-w-[1120px]">
       <AuthLogo />
 
+      <div className="mt-4 flex items-center gap-2 rounded-2xl border border-[#D8E4EC] bg-white p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] lg:hidden">
+        <button
+          type="button"
+          onClick={() => setActiveTab('details')}
+          className={`flex-1 rounded-xl px-3 py-2 text-[14px] font-semibold transition ${
+            activeTab === 'details'
+              ? 'bg-[#063D5B] text-white'
+              : 'text-[#475569]'
+          }`}
+        >
+          Details
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('checkout')}
+          className={`flex-1 rounded-xl px-3 py-2 text-[14px] font-semibold transition ${
+            activeTab === 'checkout'
+              ? 'bg-[#063D5B] text-white'
+              : 'text-[#475569]'
+          }`}
+        >
+          Checkout
+        </button>
+      </div>
+
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
         {/* ─── LEFT: School Subscription ─── */}
-        <section className="rounded-[24px] border border-[#D8E4EC] bg-[linear-gradient(180deg,#F7FBFD_0%,#FFFFFF_100%)] p-5 shadow-[0_18px_48px_rgba(6,61,91,0.08)] sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-[#E8F4EA] px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#4D7C0F]">
-                <Sparkles className="size-3.5" />
-                School Subscription
-              </span>
-              <h1 className="mt-3 text-[28px] font-bold leading-[1.12] text-[#0F172A] sm:text-[34px]">
-                Activate your iLearnReady school workspace
-              </h1>
-              <p className="mt-3 max-w-2xl text-[15px] leading-6 text-[#475569]">
-                Your school subscription is assigned by the admin dashboard.
-                Complete checkout to unlock your dashboard, learner progress
-                tools, live classes, and reporting access.
-              </p>
-            </div>
+        <section
+          className={`rounded-[24px] border border-[#D8E4EC] bg-[linear-gradient(180deg,#F7FBFD_0%,#FFFFFF_100%)] p-4 shadow-[0_18px_48px_rgba(6,61,91,0.08)] sm:p-5 ${
+            activeTab === 'checkout' ? 'hidden lg:block' : 'block'
+          }`}
+        >
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-[#E8F4EA] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#4D7C0F]">
+              <Sparkles className="size-3.5" />
+              School Subscription
+            </span>
+            <h1 className="mt-3 max-w-2xl text-[24px] font-bold leading-[1.15] text-[#0F172A] sm:text-[30px]">
+              Activate your iLearnReady workspace
+            </h1>
+            <p className="mt-2 max-w-xl text-[14px] leading-6 text-[#475569]">
+              Complete payment for the admin-assigned school plan.
+            </p>
+            {accessNotice ? (
+              <div className="mt-4 rounded-2xl border border-[#CFE4D4] bg-[#F0FDF4] px-4 py-3 text-[13px] leading-5 text-[#166534]">
+                {accessNotice}
+              </div>
+            ) : null}
 
-            <div className="min-w-[220px] rounded-2xl bg-[#063D5B] px-4 py-3 text-white shadow-[0_14px_34px_rgba(6,61,91,0.18)]">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-white/70">
-                Payment notes
-              </p>
-              <ul className="mt-2 space-y-2">
-                {paymentSteps.map(step => (
-                  <li
-                    key={step}
-                    className="flex items-start gap-2 text-[13px] leading-5"
-                  >
-                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#A3E635]" />
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {paymentSteps.map(step => (
+                <span
+                  key={step}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#CFE4D4] bg-white px-3 py-1.5 text-[12px] font-medium text-[#315B1A]"
+                >
+                  <ShieldCheck className="size-3.5 shrink-0 text-[#6A9D23]" />
+                  {step}
+                </span>
+              ))}
             </div>
           </div>
 
-          <div className="mt-6">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-[20px] font-bold text-[#0F172A]">
-                Assigned school subscription
+          <div className="mt-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-[18px] font-bold text-[#0F172A]">
+                Assigned school
               </h2>
               {!loadingPlans && plans.length > 0 ? (
-                <p className="text-[14px] font-medium text-[#64748B]">
+                <p className="text-[13px] font-medium text-[#64748B]">
                   Ready for checkout
                 </p>
               ) : null}
             </div>
 
             {loadingPlans ? (
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {[0, 1].map(index => (
+              <div className="mt-3 grid gap-3">
+                {[0].map(index => (
                   <div
                     key={index}
-                    className="h-[190px] animate-pulse rounded-[22px] border border-[#E2E8F0] bg-[#F8FAFC]"
+                    className="h-[120px] animate-pulse rounded-[20px] border border-[#E2E8F0] bg-[#F8FAFC]"
                   />
                 ))}
               </div>
             ) : plans.length ? (
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="mt-3 grid gap-3">
                 {plans.map(plan => {
                   const isSelected = plan._id === selectedPlanId
 
@@ -516,61 +654,124 @@ export default function PurchasePlanPage() {
                       key={plan._id}
                       type="button"
                       onClick={() => setSelectedPlanId(plan._id)}
-                      className={`rounded-[22px] border p-5 text-left transition ${
+                      className={`flex flex-col justify-between gap-4 rounded-[20px] border p-4 text-left transition sm:flex-row sm:items-center ${
                         isSelected
-                          ? 'border-[#063D5B] bg-[#063D5B] text-white shadow-[0_24px_60px_rgba(6,61,91,0.2)]'
+                          ? 'border-[#063D5B] bg-[#063D5B] text-white shadow-[0_18px_42px_rgba(6,61,91,0.18)]'
                           : 'border-[#D8E4EC] bg-white text-[#0F172A] hover:border-[#8AA9BD] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p
-                            className={`text-[13px] font-semibold uppercase tracking-[0.18em] ${
-                              isSelected ? 'text-[#BFE7FF]' : 'text-[#6A9D23]'
-                            }`}
-                          >
-                            School access
-                          </p>
-                          <h3 className="mt-2 text-[24px] font-bold">
-                            {plan.name}
-                          </h3>
-                        </div>
-                        {isSelected ? (
-                          <span className="rounded-full bg-white/15 px-3 py-1 text-[12px] font-semibold">
-                            Selected ✓
-                          </span>
-                        ) : null}
+                      <div className="min-w-0">
+                        <p
+                          className={`text-[12px] font-semibold uppercase tracking-[0.16em] ${
+                            isSelected ? 'text-[#BFE7FF]' : 'text-[#6A9D23]'
+                          }`}
+                        >
+                          School access
+                        </p>
+                        <h3 className="mt-2 text-[21px] font-bold leading-tight sm:text-[24px]">
+                          {plan.name}
+                        </h3>
                       </div>
 
-                      <div className="mt-4 flex items-end gap-2">
-                        <span className="text-[30px] font-bold">
-                          {formatCurrency(plan.price)}
-                        </span>
-                        <span
-                          className={
-                            isSelected
-                              ? 'pb-1 text-white/70'
-                              : 'pb-1 text-[#64748B]'
-                          }
-                        >
-                          one-time payment
-                        </span>
+                      <div className="flex shrink-0 items-end justify-between gap-4 sm:flex-col sm:items-end">
+                        {isSelected ? (
+                          <span className="rounded-full bg-white/15 px-3 py-1 text-[12px] font-semibold">
+                            Selected
+                          </span>
+                        ) : null}
+                        <div className="flex items-end gap-2">
+                          <span className="text-[28px] font-bold">
+                            {formatCurrency(plan.price)}
+                          </span>
+                          <span
+                            className={
+                              isSelected
+                                ? 'pb-1 text-white/70'
+                                : 'pb-1 text-[#64748B]'
+                            }
+                          >
+                            per student
+                          </span>
+                        </div>
                       </div>
                     </button>
                   )
                 })}
               </div>
             ) : (
-              <div className="mt-4 rounded-[22px] border border-dashed border-[#CBD5E1] bg-white px-6 py-8 text-center">
-                <p className="text-[18px] font-semibold text-[#0F172A]">
+              <div className="mt-3 rounded-[20px] border border-dashed border-[#CBD5E1] bg-white px-5 py-6 text-center">
+                <p className="text-[17px] font-semibold text-[#0F172A]">
                   No assigned school subscription found
                 </p>
-                <p className="mt-2 text-[15px] text-[#64748B]">
-                  Please ask the admin to assign your account to a school with a
-                  valid subscription price.
+                <p className="mt-2 text-[14px] text-[#64748B]">
+                  Please ask the admin to assign a school with a valid
+                  per-student charge.
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="mt-5 rounded-[20px] bg-white p-4 ring-1 ring-[#E2E8F0]">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-[#EEF6FB] text-[#063D5B]">
+                <CalendarDays className="size-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+                  Payment Schedule
+                </p>
+                <h2 className="text-[18px] font-bold text-[#0F172A]">
+                  Choose term payment option
+                </h2>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                Payment option
+              </label>
+              <Select
+                value={paymentPlan}
+                onValueChange={value => setPaymentPlan(value as PaymentPlan)}
+              >
+                <SelectTrigger className="mt-1.5 h-10 w-full rounded-lg border border-[#CBD5E1] bg-white px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10 focus:ring-offset-0">
+                  <SelectValue placeholder="Select payment option" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border border-[#E2E8F0] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
+                  {paymentPlanOptions.map(option => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                      className="cursor-pointer rounded-lg px-3 py-2.5 text-[15px] text-[#0F172A] hover:bg-[#F0F7FF] focus:bg-[#F0F7FF]"
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1.5 text-[13px] text-[#64748B]">
+                {
+                  paymentPlanOptions.find(option => option.value === paymentPlan)
+                    ?.helper
+                }
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {termDueDateFields.map(field => (
+                <div
+                  key={field.key}
+                  className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2.5"
+                >
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#64748B]">
+                    {field.label}
+                  </p>
+                  <p className="mt-1 text-[14px] font-semibold text-[#0F172A]">
+                    {formatDate(termDueDates[field.key])}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="mt-5 rounded-[20px] bg-white p-4 ring-1 ring-[#E2E8F0]">
@@ -589,29 +790,41 @@ export default function PurchasePlanPage() {
                 </p>
               </div>
               <p className="text-[24px] font-bold text-[#063D5B]">
-                {formatCurrency(selectedPlan?.price || 0)}
+                {formatCurrency(selectedPaymentAmount)}
               </p>
             </div>
 
             <div className="mt-4 space-y-1.5 border-t border-[#E2E8F0] pt-3">
               <div className="flex items-center justify-between text-[13px] text-[#64748B]">
-                <span>Subtotal</span>
-                <span>{formatCurrency(selectedPlan?.price || 0)}</span>
+                <span>Total students</span>
+                <span>{totalStudents.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between text-[13px] text-[#64748B]">
-                <span>Tax</span>
-                <span>Included</span>
+                <span>Per-student charge</span>
+                <span>{formatCurrency(perStudentCharge)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[13px] text-[#64748B]">
+                <span>Calculated school year total</span>
+                <span>{formatCurrency(calculatedTotalAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[13px] text-[#64748B]">
+                <span>Selected payment option</span>
+                <span>{selectedPaymentPlanLabel}</span>
               </div>
               <div className="flex items-center justify-between border-t border-[#E2E8F0] pt-2 text-[15px] font-bold text-[#0F172A]">
-                <span>Total due today</span>
-                <span>{formatCurrency(selectedPlan?.price || 0)}</span>
+                <span>{paymentMethod === 'offline' ? 'Amount to approve' : 'Total due today'}</span>
+                <span>{formatCurrency(selectedPaymentAmount)}</span>
               </div>
             </div>
           </div>
         </section>
 
         {/* ─── RIGHT: Checkout ─── */}
-        <aside className="rounded-[24px] border border-[#D8E4EC] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)] sm:p-6">
+        <aside
+          className={`rounded-[24px] border border-[#D8E4EC] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)] sm:p-6 ${
+            activeTab === 'details' ? 'hidden lg:block' : 'block'
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-2xl bg-[#EEF6FB] text-[#063D5B]">
               <CreditCard className="size-5" />
@@ -627,6 +840,48 @@ export default function PurchasePlanPage() {
           </div>
 
           <div className="mt-5 space-y-3">
+            <div>
+              <label className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                Payment method
+              </label>
+              <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('card')}
+                  className={`rounded-xl border px-4 py-3 text-left transition ${
+                    paymentMethod === 'card'
+                      ? 'border-[#063D5B] bg-[#EEF6FB] text-[#063D5B]'
+                      : 'border-[#CBD5E1] bg-white text-[#475569] hover:border-[#8AA9BD]'
+                  }`}
+                >
+                  <CreditCard className="size-4" />
+                  <span className="mt-2 block text-[14px] font-semibold">
+                    Pay by card
+                  </span>
+                  <span className="mt-1 block text-[12px] leading-5">
+                    Activates after Stripe confirmation.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('offline')}
+                  className={`rounded-xl border px-4 py-3 text-left transition ${
+                    paymentMethod === 'offline'
+                      ? 'border-[#063D5B] bg-[#EEF6FB] text-[#063D5B]'
+                      : 'border-[#CBD5E1] bg-white text-[#475569] hover:border-[#8AA9BD]'
+                  }`}
+                >
+                  <Landmark className="size-4" />
+                  <span className="mt-2 block text-[14px] font-semibold">
+                    Wire or offline
+                  </span>
+                  <span className="mt-1 block text-[12px] leading-5">
+                    Admin approval activates access.
+                  </span>
+                </button>
+              </div>
+            </div>
+
             {/* Billing Email */}
             <div>
               <label
@@ -646,176 +901,93 @@ export default function PurchasePlanPage() {
               />
             </div>
 
-            {/* Cardholder Name */}
-            <div>
-              <label
-                htmlFor="cardholderName"
-                className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748B]"
-              >
-                Name on card
-              </label>
-              <input
-                id="cardholderName"
-                type="text"
-                value={cardholderName}
-                onChange={event => setCardholderName(event.target.value)}
-                placeholder="School finance contact"
-                autoComplete="cc-name"
-                className="mt-1.5 h-10 w-full rounded-lg border border-[#CBD5E1] px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
-              />
-            </div>
-
-            {/* Country - shadcn Select */}
-            <div>
-              <label className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
-                Country
-              </label>
-              <Select
-                value={country}
-                onValueChange={val => {
-                  if (val) setCountry(val)
-                }}
-              >
-                <SelectTrigger className="mt-1.5 h-10 w-full rounded-lg border border-[#CBD5E1] bg-white px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10 focus:ring-offset-0">
-                  <SelectValue placeholder="Select country" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border border-[#E2E8F0] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
-                  {countryOptions.map(option => (
-                    <SelectItem
-                      key={option.value}
-                      value={option.value}
-                      className="cursor-pointer rounded-lg px-3 py-2.5 text-[15px] text-[#0F172A] hover:bg-[#F0F7FF] focus:bg-[#F0F7FF]"
-                    >
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Card Information */}
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <label className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
-                  Debit/Credit card information
+            <div className={paymentMethod === 'card' ? 'space-y-3' : 'hidden'}>
+              {/* Cardholder Name */}
+              <div>
+                <label
+                  htmlFor="cardholderName"
+                  className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748B]"
+                >
+                  Name on card
                 </label>
-                <span className="rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-semibold text-[#16A34A]">
-                  Secure
-                </span>
+                <input
+                  id="cardholderName"
+                  type="text"
+                  value={cardholderName}
+                  onChange={event => setCardholderName(event.target.value)}
+                  placeholder="School finance contact"
+                  autoComplete="cc-name"
+                  className="mt-1.5 h-10 w-full rounded-lg border border-[#CBD5E1] px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
+                />
               </div>
-              <div className="mt-1.5 overflow-hidden rounded-lg border border-[#CBD5E1] bg-white transition focus-within:border-[#063D5B] focus-within:ring-2 focus-within:ring-[#063D5B]/10">
-                <div className="px-3.5 py-2.5">
-                  <div id={cardNumberContainerId} />
+
+              {/* Card Information */}
+              <div>
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                    Debit/Credit card information
+                  </label>
+                  <span className="rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-semibold text-[#16A34A]">
+                    Secure
+                  </span>
                 </div>
-                <div className="grid grid-cols-2 border-t border-[#E2E8F0]">
-                  <div className="border-r border-[#E2E8F0] px-3.5 py-2.5">
-                    <div id={cardExpiryContainerId} />
-                  </div>
+                <div className="mt-1.5 overflow-hidden rounded-lg border border-[#CBD5E1] bg-white transition focus-within:border-[#063D5B] focus-within:ring-2 focus-within:ring-[#063D5B]/10">
                   <div className="px-3.5 py-2.5">
-                    <div id={cardCvcContainerId} />
+                    <div id={cardNumberContainerId} />
+                  </div>
+                  <div className="grid grid-cols-2 border-t border-[#E2E8F0]">
+                    <div className="border-r border-[#E2E8F0] px-3.5 py-2.5">
+                      <div id={cardExpiryContainerId} />
+                    </div>
+                    <div className="px-3.5 py-2.5">
+                      <div id={cardCvcContainerId} />
+                    </div>
                   </div>
                 </div>
+                {Object.values(cardErrors).some(Boolean) ? (
+                  <div className="mt-2 space-y-1">
+                    {cardErrors.number ? (
+                      <p className="text-[13px] text-[#DC2626]">
+                        {cardErrors.number}
+                      </p>
+                    ) : null}
+                    {cardErrors.expiry ? (
+                      <p className="text-[13px] text-[#DC2626]">
+                        {cardErrors.expiry}
+                      </p>
+                    ) : null}
+                    {cardErrors.cvc ? (
+                      <p className="text-[13px] text-[#DC2626]">
+                        {cardErrors.cvc}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
-              {Object.values(cardErrors).some(Boolean) ? (
-                <div className="mt-2 space-y-1">
-                  {cardErrors.number ? (
-                    <p className="text-[13px] text-[#DC2626]">
-                      {cardErrors.number}
-                    </p>
-                  ) : null}
-                  {cardErrors.expiry ? (
-                    <p className="text-[13px] text-[#DC2626]">
-                      {cardErrors.expiry}
-                    </p>
-                  ) : null}
-                  {cardErrors.cvc ? (
-                    <p className="text-[13px] text-[#DC2626]">
-                      {cardErrors.cvc}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
 
-            {/* Billing Address */}
-            <div>
-              <label
-                htmlFor="billingAddressLine1"
-                className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748B]"
-              >
-                Billing address
-              </label>
-              <div className="mt-1.5 space-y-2">
-                <input
-                  id="billingAddressLine1"
-                  type="text"
-                  value={billingAddress.line1}
-                  onChange={event =>
-                    setBillingAddress(current => ({
-                      ...current,
-                      line1: event.target.value,
-                    }))
-                  }
-                  placeholder="Address line 1"
-                  autoComplete="billing address-line1"
-                  className="h-10 w-full rounded-lg border border-[#CBD5E1] px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
+            {paymentMethod === 'offline' ? (
+              <div>
+                <label
+                  htmlFor="offlinePaymentNote"
+                  className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748B]"
+                >
+                  Offline payment note
+                </label>
+                <textarea
+                  id="offlinePaymentNote"
+                  value={offlinePaymentNote}
+                  onChange={event => setOfflinePaymentNote(event.target.value)}
+                  placeholder="Wire transfer reference, finance contact, or internal note"
+                  className="mt-1.5 min-h-[96px] w-full resize-none rounded-lg border border-[#CBD5E1] px-3.5 py-3 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
                 />
-                <input
-                  type="text"
-                  value={billingAddress.line2}
-                  onChange={event =>
-                    setBillingAddress(current => ({
-                      ...current,
-                      line2: event.target.value,
-                    }))
-                  }
-                  placeholder="Apartment, suite, etc. (optional)"
-                  autoComplete="billing address-line2"
-                  className="h-10 w-full rounded-lg border border-[#CBD5E1] px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
-                />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="text"
-                    value={billingAddress.city}
-                    onChange={event =>
-                      setBillingAddress(current => ({
-                        ...current,
-                        city: event.target.value,
-                      }))
-                    }
-                    placeholder="City"
-                    autoComplete="billing address-level2"
-                    className="h-10 w-full rounded-lg border border-[#CBD5E1] px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
-                  />
-                  <input
-                    type="text"
-                    value={billingAddress.state}
-                    onChange={event =>
-                      setBillingAddress(current => ({
-                        ...current,
-                        state: event.target.value,
-                      }))
-                    }
-                    placeholder="State / county"
-                    autoComplete="billing address-level1"
-                    className="h-10 w-full rounded-lg border border-[#CBD5E1] px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
-                  />
+                <div className="mt-2 rounded-lg border border-[#FEF3C7] bg-[#FFFBEB] px-3 py-2 text-[12px] leading-5 text-[#92400E]">
+                  Submit this only after the school has arranged payment by
+                  wire transfer or another offline method. Admin approval will
+                  activate the subscription.
                 </div>
-                <input
-                  type="text"
-                  value={billingAddress.postalCode}
-                  onChange={event =>
-                    setBillingAddress(current => ({
-                      ...current,
-                      postalCode: event.target.value,
-                    }))
-                  }
-                  placeholder="Postal code"
-                  autoComplete="billing postal-code"
-                  className="h-10 w-full rounded-lg border border-[#CBD5E1] px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
-                />
               </div>
-            </div>
+            ) : null}
           </div>
 
           {/* Status Banner */}
@@ -843,7 +1015,8 @@ export default function PurchasePlanPage() {
             disabled={
               !selectedPlan ||
               selectedPlan.price <= 0 ||
-              !stripeReady ||
+              totalStudents <= 0 ||
+              (paymentMethod === 'card' && !stripeReady) ||
               submitting ||
               loadingPlans
             }
@@ -855,15 +1028,19 @@ export default function PurchasePlanPage() {
               <ShieldCheck className="size-4" />
             )}
             {submitting
-              ? 'Processing payment...'
+              ? paymentMethod === 'offline'
+                ? 'Submitting request...'
+                : 'Processing payment...'
               : selectedPlan
-                ? `Pay ${formatCurrency(selectedPlan.price)} securely`
+                ? paymentMethod === 'offline'
+                  ? `Request approval for ${formatCurrency(selectedPaymentAmount)}`
+                  : `Pay ${formatCurrency(selectedPaymentAmount)} securely`
                 : 'Assigned school required'}
           </button>
 
           <p className="mt-4 text-center text-[13px] leading-6 text-[#64748B]">
-            🔒 Payments are confirmed through Stripe. Your school subscription
-            updates automatically once the payment webhook is received.
+            Card payments are confirmed through Stripe. Offline payments stay
+            pending until an admin approves the request.
           </p>
         </aside>
       </div>
