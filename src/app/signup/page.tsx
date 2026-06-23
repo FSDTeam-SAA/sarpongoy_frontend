@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Eye, EyeOff, Link2 } from 'lucide-react'
+import { Eye, EyeOff, FileText, Link2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import AuthLogo from '@/components/auth/AuthLogo'
 import AuthShell from '@/components/auth/AuthShell'
@@ -19,11 +19,31 @@ import {
 interface School {
   _id: string
   name: string
+  subscribePrice?: number
+  NDA?: string
+}
+
+const isUrl = (value?: string) => Boolean(value && /^(https?:|blob:|data:)\S+/i.test(value.trim()))
+
+const getApiOrigin = () => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+  return apiUrl.replace(/\/api\/v\d+\/?$/i, '').replace(/\/$/, '')
+}
+
+const getNdaUrl = (nda?: string) => {
+  const value = nda?.trim()
+  if (!value) return ''
+  if (isUrl(value)) return value
+  if (value.startsWith('/')) return `${getApiOrigin()}${value}`
+  if (value.includes('/')) return `${getApiOrigin()}/${value.replace(/^\/+/, '')}`
+  return ''
 }
 
 export default function SignUpPage() {
   const router = useRouter()
   const [schools, setSchools] = useState<School[]>([])
+  const [selectedSchoolDetails, setSelectedSchoolDetails] = useState<School | null>(null)
+  const [schoolDetailsLoading, setSchoolDetailsLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -40,7 +60,6 @@ export default function SignUpPage() {
   })
 
   const [schoolLogo, setSchoolLogo] = useState<File | null>(null)
-  const [signature, setSignature] = useState<File | null>(null)
 
   useEffect(() => {
     axiosInstance.get('/school?limit=100').then(res => {
@@ -50,6 +69,43 @@ export default function SignUpPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const handleSchoolSelect = (value: string | null) => {
+    if (!value) {
+      setForm(prev => ({
+        ...prev,
+        schoolId: '',
+        selectedSchoolName: '',
+      }))
+      setSelectedSchoolDetails(null)
+      return
+    }
+
+    const selectedSchool = schools.find(s => s._id === value)
+    if (!selectedSchool) return
+
+    setForm(prev => ({
+      ...prev,
+      schoolId: selectedSchool._id,
+      selectedSchoolName: selectedSchool.name,
+    }))
+    setSelectedSchoolDetails(selectedSchool)
+    setSchoolDetailsLoading(true)
+
+    axiosInstance
+      .get(`/school/${selectedSchool._id}`)
+      .then(res => {
+        const schoolDetails = res.data?.data as School | undefined
+        const nextSchool = schoolDetails?._id ? schoolDetails : selectedSchool
+        setSelectedSchoolDetails(nextSchool)
+      })
+      .catch(() => {
+        setSelectedSchoolDetails(selectedSchool)
+      })
+      .finally(() => {
+        setSchoolDetailsLoading(false)
+      })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,14 +134,13 @@ export default function SignUpPage() {
       if (form.bio) fd.append('bio', form.bio)
       if (form.totalStudent) fd.append('totalStudent', form.totalStudent)
       if (schoolLogo) fd.append('schoolLogo', schoolLogo)
-      if (signature) fd.append('uploadeSignature', signature)
 
       await axiosInstance.post('/auth/register', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
 
-      toast.success('Account created! Please choose a plan.')
-      router.push('/purchase-plan')
+      toast.success('Account created! Please log in to complete your school payment.')
+      router.push('/login')
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } }
       toast.error(error?.response?.data?.message || 'Registration failed')
@@ -122,16 +177,7 @@ export default function SignUpPage() {
               </label>
               <Select
                 value={form.schoolId}
-                onValueChange={value => {
-                  const selectedSchool = schools.find(s => s._id === value)
-                  if (!selectedSchool) return
-
-                  setForm(prev => ({
-                    ...prev,
-                    schoolId: selectedSchool._id,
-                    selectedSchoolName: selectedSchool.name,
-                  }))
-                }}
+                onValueChange={handleSchoolSelect}
                 required
               >
                 <SelectTrigger className="mt-2 h-12 w-full rounded-sm border border-[#CACACA] bg-white px-4 text-[15px] text-[#6B7280] outline-none focus:border-[var(--color-primary)] focus:ring-0 focus:ring-offset-0">
@@ -258,12 +304,62 @@ export default function SignUpPage() {
                 type="number"
                 min="0"
                 inputMode="numeric"
-                placeholder="0"
+                placeholder="Enter total school population"
                 value={form.totalStudent}
                 onChange={handleChange}
                 className="mt-2 h-12 w-full rounded-sm border border-[#CACACA] px-4 text-[15px] outline-none focus:border-[var(--color-primary)]"
               />
+              <p className="mt-2 text-[12px] text-[#6B7280]">
+                Enter the current total school population for your account.
+              </p>
             </div>
+
+            {form.schoolId ? (
+              <div className="rounded-2xl border border-[#D7E7CF] bg-[#F8FCF4] p-5">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#6A9D23]">
+                      School Contract
+                    </p>
+                    <h3 className="mt-1 text-[20px] font-bold leading-7 text-[#063D5B]">
+                      {selectedSchoolDetails?.name || form.selectedSchoolName}
+                    </h3>
+                    <p className="mt-1 text-[14px] font-semibold text-[#4A5565]">
+                      Per-student charge: ${Number(selectedSchoolDetails?.subscribePrice || 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <span className="flex size-10 items-center justify-center rounded-full bg-[#EAF4FA] text-[#063D5B]">
+                    <FileText className="size-5" />
+                  </span>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-[#DDEBD5] bg-white p-4 shadow-[0_8px_20px_rgba(99,128,68,0.08)]">
+                  {schoolDetailsLoading ? (
+                    <p className="text-[15px] font-bold text-[#063D5B]">Loading school contract...</p>
+                  ) : selectedSchoolDetails?.NDA ? (
+                    getNdaUrl(selectedSchoolDetails.NDA) ? (
+                      <a
+                        href={getNdaUrl(selectedSchoolDetails.NDA)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex text-[15px] font-bold text-[#063D5B] underline-offset-4 transition hover:text-[#6A9D23] hover:underline"
+                      >
+                        View School Contract
+                      </a>
+                    ) : (
+                      <p className="text-[15px] font-bold text-[#9A6B16]">
+                        School contract saved, but no viewable URL found
+                      </p>
+                    )
+                  ) : (
+                    <p className="text-[15px] font-bold text-[#9A6B16]">Not available yet</p>
+                  )}
+                  <p className="mt-2 text-[13px] leading-5 text-[#6B7280]">
+                    Review the school contract before submitting your signup request.
+                  </p>
+                </div>
+              </div>
+            ) : null}
 
             <div>
               <label className="text-[15px] font-normal leading-none">Upload School Logo (Optional)</label>
@@ -275,20 +371,6 @@ export default function SignUpPage() {
                   accept="image/*"
                   className="absolute inset-0 opacity-0 cursor-pointer"
                   onChange={e => setSchoolLogo(e.target.files?.[0] || null)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[15px] font-normal leading-none">Upload Signature (Optional)</label>
-              <div className="mt-2 flex h-12 items-center justify-between rounded-sm border border-[#CACACA] px-4 text-[15px] text-[#6B7280] cursor-pointer relative">
-                <span>{signature ? signature.name : 'Upload here'}</span>
-                <Link2 className="size-4" aria-hidden="true" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  onChange={e => setSignature(e.target.files?.[0] || null)}
                 />
               </div>
             </div>

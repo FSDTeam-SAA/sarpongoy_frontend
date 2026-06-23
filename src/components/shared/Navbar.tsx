@@ -13,8 +13,9 @@ import {
   USER_UPDATED_EVENT,
 } from '@/lib/auth-helpers'
 import { axiosInstance } from '@/lib/axios'
+import { getAssignedSchoolAccess } from '@/lib/school-access'
 import { isMongoObjectId, normalizeSchoolNameValue, resolveSchoolName, withCacheBuster } from '@/lib/school'
-import { ChevronRight, LogOut, Menu, ShieldCheck, User } from 'lucide-react'
+import { ChevronRight, CreditCard, LogOut, Menu, ShieldCheck, User } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,10 +48,9 @@ interface UserData {
   _id?: string
   email?: string
   role?: string
-  subscription?: string
   profilePicture?: string
   schoolLogo?: string
-  schoolName?: string | { name?: string }
+  schoolName?: string | { _id?: string; name?: string }
   firstName?: string
   lastName?: string
 }
@@ -64,6 +64,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
   const router = useRouter()
   const [isScrolled, setIsScrolled] = useState(false)
   const [user, setUser] = useState<UserData | null>(null)
+  const [schoolAccessActive, setSchoolAccessActive] = useState(false)
   const [avatarVersion, setAvatarVersion] = useState(Date.now())
   const [logoutModalOpen, setLogoutModalOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -83,6 +84,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
     const syncUserFromStorage = () => {
       const stored = getUser<UserData>()
       setUser(stored)
+      setSchoolAccessActive(false)
       setAvatarVersion(Date.now())
       return stored
     }
@@ -96,7 +98,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
 
     window.addEventListener(USER_UPDATED_EVENT, handleUserUpdated)
 
-    // Then fetch fresh data from API so subscription is always up-to-date
+    // Then fetch fresh data from API so school access status is always up-to-date
     const token = getToken()
     if (!token) {
       return () => window.removeEventListener(USER_UPDATED_EVENT, handleUserUpdated)
@@ -113,8 +115,10 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
           ...profile,
           schoolName: normalizeSchoolNameValue(profile.schoolName, resolvedSchoolName),
         }
+        const { isActive } = await getAssignedSchoolAccess(merged)
         setStoredUser(merged)
         setUser(merged as UserData)
+        setSchoolAccessActive(isActive)
         setAvatarVersion(Date.now())
       })
       .catch(() => {
@@ -124,11 +128,15 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
   }, [pathname])
 
   const handleProfileNav = () => {
-    if (user?.subscription) {
+    if (schoolAccessActive) {
       router.push('/profile')
     } else {
       router.push('/purchase-plan')
     }
+  }
+
+  const handlePaymentNav = () => {
+    router.push('/purchase-plan')
   }
 
   const confirmLogout = () => {
@@ -247,7 +255,7 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
                   </p>
                   <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-[#063D5B] ring-1 ring-[#E2E8F0]">
                     <ShieldCheck className="size-3.5" />
-                    {user.subscription ? 'Subscription Active' : 'Plan Required'}
+                    {schoolAccessActive ? 'School Access Active' : 'Payment Required'}
                   </div>
                 </div>
 
@@ -256,8 +264,16 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
                   className="mt-2 flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium text-[#334155] hover:bg-[#F8FAFC]"
                 >
                   <User className="size-4" />
-                  {user.subscription ? 'Profile & Settings' : 'Choose a Plan'}
+                  {schoolAccessActive ? 'Profile & Settings' : 'Complete Payment'}
                   <ChevronRight className="ml-auto size-4 text-[#94A3B8]" />
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={handlePaymentNav}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium text-[#334155] hover:bg-[#F8FAFC]"
+                >
+                  <CreditCard className="size-4" />
+                  Payment & Subscription
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -354,7 +370,19 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
                     className="flex w-full items-center gap-3 rounded-xl bg-[var(--color-accent)] px-4 py-3 text-left text-[15px] font-semibold text-white transition hover:opacity-90"
                   >
                     <User className="size-4" />
-                    {user.subscription ? 'Profile & Settings' : 'Choose a Plan'}
+                    {schoolAccessActive ? 'Profile & Settings' : 'Complete Payment'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      handlePaymentNav()
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-left text-[15px] font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
+                  >
+                    <CreditCard className="size-4" />
+                    Payment & Subscription
                   </button>
 
                   <button
