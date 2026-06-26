@@ -87,6 +87,7 @@ interface SchoolPaymentOverview {
     } | null
     paymentHistory?: Array<{
         id?: string
+        paymentId?: string
         status?: string
         paymentPlan?: string
         paymentMethod?: string
@@ -141,6 +142,7 @@ export default function ProfilePage() {
     const [studentMeta, setStudentMeta] = useState<StudentMeta>({ page: 1, limit: STUDENTS_PER_PAGE, total: 0 })
     const [loadingStudents, setLoadingStudents] = useState(false)
     const [uploadingStudents, setUploadingStudents] = useState(false)
+    const [invoiceDownloadingId, setInvoiceDownloadingId] = useState('')
     const [schoolDetails, setSchoolDetails] = useState<SchoolDetails | null>(null)
     const [paymentOverview, setPaymentOverview] = useState<SchoolPaymentOverview | null>(null)
 
@@ -363,13 +365,40 @@ export default function ProfilePage() {
         if (plan === 'first_term') return 'First Term'
         if (plan === 'second_term') return 'Second Term'
         if (plan === 'third_term') return 'Third Term'
-        if (plan === 'full_year') return 'Full Year'
+        if (plan === 'full_year') return 'Full Term'
         return 'N/A'
     }
 
     const formatPaymentStatus = (status?: string) => {
         if (!status) return 'unknown'
         return status.replace(/_/g, ' ')
+    }
+
+    const downloadInvoice = async (paymentId?: string) => {
+        if (!paymentId) {
+            toast.error('Invoice payment reference not found.')
+            return
+        }
+
+        try {
+            setInvoiceDownloadingId(paymentId)
+            const res = await axiosInstance.get(`/payment/${paymentId}/invoice`, {
+                responseType: 'blob',
+            })
+            const url = window.URL.createObjectURL(res.data)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `invoice-${paymentId.slice(-8)}.pdf`
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(url)
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } }
+            toast.error(error?.response?.data?.message || 'Failed to download invoice')
+        } finally {
+            setInvoiceDownloadingId('')
+        }
     }
 
     const planCapacity = profile?.totalStudent ?? 0
@@ -780,6 +809,17 @@ export default function ProfilePage() {
                                                     </p>
                                                     {item.note ? (
                                                         <p className="mt-1 text-[12px] text-[#475569]">{item.note}</p>
+                                                    ) : null}
+                                                    {item.status === 'completed' && item.paymentId ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => downloadInvoice(item.paymentId)}
+                                                            disabled={invoiceDownloadingId === item.paymentId}
+                                                            className="mt-2 inline-flex h-8 items-center justify-center gap-2 rounded-md border border-[#063D5B] px-3 text-[12px] font-semibold text-[#063D5B] transition hover:bg-[#EEF6FB] disabled:cursor-not-allowed disabled:opacity-60"
+                                                        >
+                                                            {invoiceDownloadingId === item.paymentId ? 'Downloading...' : 'Download Invoice'}
+                                                            <Download className="size-3.5" />
+                                                        </button>
                                                     ) : null}
                                                 </div>
                                             ))
