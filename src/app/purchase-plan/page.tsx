@@ -131,9 +131,7 @@ const termDueDateFields: Array<{
   { key: 'thirdTerm', label: 'Third Term Due Date', plan: 'third_term' },
 ]
 
-const paymentSteps = [
-  'Offline payments activate after admin approval',
-]
+const paymentSteps = ['Offline payments activate after admin approval']
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', {
@@ -232,20 +230,26 @@ export default function PurchasePlanPage() {
   const calculatedTotalAmount = Number(
     (totalStudents * perStudentCharge).toFixed(2),
   )
-  const completedPayments = paymentOverview?.payments?.filter(
-    payment => payment.status === 'completed',
-  ) || []
-  const paidPlans = new Set(completedPayments.map(payment => payment.paymentPlan))
+  const completedPayments =
+    paymentOverview?.payments?.filter(
+      payment => payment.status === 'completed',
+    ) || []
+  const paidPlans = new Set(
+    completedPayments.map(payment => payment.paymentPlan),
+  )
   const hasPaidFullTerm = paidPlans.has('full_year')
   const hasOfflinePending = Boolean(
-    paymentOverview?.payments?.some(payment => payment.status === 'offline_pending'),
+    paymentOverview?.payments?.some(
+      payment => payment.status === 'offline_pending',
+    ),
   )
   const paidAmount = Number(paymentOverview?.totalCollected || 0)
   const balanceDue = Math.max(
     0,
     Number(
       (
-        (paymentOverview?.balanceDue ?? calculatedTotalAmount - paidAmount) || 0
+        (paymentOverview?.balanceDue ?? calculatedTotalAmount - paidAmount) ||
+        0
       ).toFixed(2),
     ),
   )
@@ -253,15 +257,16 @@ export default function PurchasePlanPage() {
   const isSelectedPlanPaid =
     hasPaidFullTerm ||
     (paymentPlan !== 'full_year' && paidPlans.has(paymentPlan)) ||
-    (paymentPlan === 'full_year' && balanceDue <= 0 && calculatedTotalAmount > 0)
-  const selectedPaymentAmount =
-    isSelectedPlanPaid
-      ? 0
-      : paymentPlan === 'full_year'
-        ? paymentOverview
-          ? balanceDue
-          : calculatedTotalAmount
-        : Math.min(termAmount, balanceDue || termAmount)
+    (paymentPlan === 'full_year' &&
+      balanceDue <= 0 &&
+      calculatedTotalAmount > 0)
+  const selectedPaymentAmount = isSelectedPlanPaid
+    ? 0
+    : paymentPlan === 'full_year'
+      ? paymentOverview
+        ? balanceDue
+        : calculatedTotalAmount
+      : Math.min(termAmount, balanceDue || termAmount)
   const selectedPaymentPlanLabel =
     paymentPlanOptions.find(option => option.value === paymentPlan)?.label ||
     'Full Term'
@@ -455,7 +460,9 @@ export default function PurchasePlanPage() {
     }
 
     if (hasOfflinePending) {
-      toast.error('An offline payment request is already waiting for admin approval.')
+      toast.error(
+        'An offline payment request is already waiting for admin approval.',
+      )
       return
     }
 
@@ -491,10 +498,13 @@ export default function PurchasePlanPage() {
       const paymentPayload = { paymentPlan }
 
       if (paymentMethod === 'offline') {
-        await axiosInstance.post(`/payment/school/${selectedPlan._id}/offline`, {
-          ...paymentPayload,
-          offlinePaymentNote,
-        })
+        await axiosInstance.post(
+          `/payment/school/${selectedPlan._id}/offline`,
+          {
+            ...paymentPayload,
+            offlinePaymentNote,
+          },
+        )
 
         setStatus({
           type: 'success',
@@ -540,7 +550,9 @@ export default function PurchasePlanPage() {
         })
 
       const paymentData = await createPaymentIntent()
-      let { error, paymentIntent } = await confirmPayment(paymentData.clientSecret)
+      let { error, paymentIntent } = await confirmPayment(
+        paymentData.clientSecret,
+      )
 
       if (error?.message?.includes('No such payment_intent')) {
         setStatus({
@@ -632,7 +644,8 @@ export default function PurchasePlanPage() {
       paymentOverview?.payments?.some(
         payment =>
           payment.paymentPlan === plan &&
-          (payment.status === 'pending' || payment.status === 'offline_pending'),
+          (payment.status === 'pending' ||
+            payment.status === 'offline_pending'),
       )
     ) {
       return 'Pending'
@@ -642,7 +655,8 @@ export default function PurchasePlanPage() {
 
   const getPlanAmount = (plan: PaymentPlan) => {
     if (hasPaidFullTerm || paidPlans.has(plan)) return 0
-    if (plan === 'full_year') return paymentOverview ? balanceDue : calculatedTotalAmount
+    if (plan === 'full_year')
+      return paymentOverview ? balanceDue : calculatedTotalAmount
     return Math.min(termAmount, balanceDue || termAmount)
   }
 
@@ -722,7 +736,9 @@ export default function PurchasePlanPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[12px] text-[#64748B]">Remaining balance</p>
+                  <p className="text-[12px] text-[#64748B]">
+                    Remaining balance
+                  </p>
                   <p className="mt-1 text-[18px] font-bold text-[#0F172A]">
                     {formatCurrency(balanceDue)}
                   </p>
@@ -897,8 +913,9 @@ export default function PurchasePlanPage() {
               </Select>
               <p className="mt-1.5 text-[13px] text-[#64748B]">
                 {
-                  paymentPlanOptions.find(option => option.value === paymentPlan)
-                    ?.helper
+                  paymentPlanOptions.find(
+                    option => option.value === paymentPlan,
+                  )?.helper
                 }
               </p>
             </div>
@@ -916,7 +933,8 @@ export default function PurchasePlanPage() {
                     {formatDate(termDueDates[field.key])}
                   </p>
                   <p className="mt-1 text-[12px] font-semibold text-[#063D5B]">
-                    {getPlanStatus(field.plan)} · {formatCurrency(getPlanAmount(field.plan))}
+                    {getPlanStatus(field.plan)} ·{' '}
+                    {formatCurrency(getPlanAmount(field.plan))}
                   </p>
                 </div>
               ))}
@@ -971,7 +989,11 @@ export default function PurchasePlanPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between border-t border-[#E2E8F0] pt-2 text-[15px] font-bold text-[#0F172A]">
-                <span>{paymentMethod === 'offline' ? 'Amount to approve' : 'Total due today'}</span>
+                <span>
+                  {paymentMethod === 'offline'
+                    ? 'Amount to approve'
+                    : 'Total due today'}
+                </span>
                 <span>{formatCurrency(selectedPaymentAmount)}</span>
               </div>
             </div>
@@ -1141,8 +1163,8 @@ export default function PurchasePlanPage() {
                   className="mt-1.5 min-h-[96px] w-full resize-none rounded-lg border border-[#CBD5E1] px-3.5 py-3 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
                 />
                 <div className="mt-2 rounded-lg border border-[#FEF3C7] bg-[#FFFBEB] px-3 py-2 text-[12px] leading-5 text-[#92400E]">
-                  Submit this only after the school has arranged payment by
-                  wire transfer or another offline method. Admin approval will
+                  Submit this only after the school has arranged payment by wire
+                  transfer or another offline method. Admin approval will
                   activate the subscription.
                 </div>
               </div>
