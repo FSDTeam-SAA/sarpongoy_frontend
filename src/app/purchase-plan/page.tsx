@@ -45,6 +45,20 @@ interface UserData {
   schoolName?: string | { _id?: string; name?: string }
 }
 
+interface SchoolPaymentOverview {
+  totalAmountDue?: number
+  totalCollected?: number
+  balanceDue?: number
+  payments?: Array<{
+    id: string
+    amount?: number
+    status?: 'pending' | 'offline_pending' | 'completed' | 'failed' | 'refunded'
+    paymentPlan?: PaymentPlan
+    paymentMethod?: string
+    createdAt?: string
+  }>
+}
+
 interface StripeElementsInstance {
   create: (
     type: 'cardNumber' | 'cardExpiry' | 'cardCvc',
@@ -102,7 +116,7 @@ const paymentPlanOptions: Array<{
   },
   {
     value: 'full_year',
-    label: 'Full School Year',
+    label: 'Full Term',
     helper: 'Pay the full calculated school year total.',
   },
 ]
@@ -110,21 +124,19 @@ const paymentPlanOptions: Array<{
 const termDueDateFields: Array<{
   key: 'firstTerm' | 'secondTerm' | 'thirdTerm'
   label: string
+  plan: Exclude<PaymentPlan, 'full_year'>
 }> = [
-  { key: 'firstTerm', label: 'First Term Due Date' },
-  { key: 'secondTerm', label: 'Second Term Due Date' },
-  { key: 'thirdTerm', label: 'Third Term Due Date' },
+  { key: 'firstTerm', label: 'First Term Due Date', plan: 'first_term' },
+  { key: 'secondTerm', label: 'Second Term Due Date', plan: 'second_term' },
+  { key: 'thirdTerm', label: 'Third Term Due Date', plan: 'third_term' },
 ]
 
-const paymentSteps = [
-  'Card payments activate automatically after Stripe confirmation',
-  'Offline payments activate after admin approval',
-]
+const paymentSteps = ['Offline payments activate after admin approval']
 
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-GB', {
+  new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'GBP',
+    currency: 'USD',
     minimumFractionDigits: 2,
   }).format(amount || 0)
 
@@ -191,6 +203,8 @@ export default function PurchasePlanPage() {
   const [totalStudents, setTotalStudents] = useState(0)
   const [paymentPlan, setPaymentPlan] = useState<PaymentPlan>('full_year')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card')
+  const [paymentOverview, setPaymentOverview] =
+    useState<SchoolPaymentOverview | null>(null)
   const [termDueDates, setTermDueDates] = useState({
     firstTerm: '',
     secondTerm: '',
@@ -216,13 +230,49 @@ export default function PurchasePlanPage() {
   const calculatedTotalAmount = Number(
     (totalStudents * perStudentCharge).toFixed(2),
   )
-  const selectedPaymentAmount =
-    paymentPlan === 'full_year'
-      ? calculatedTotalAmount
-      : Number((calculatedTotalAmount / 3).toFixed(2))
+  const completedPayments =
+    paymentOverview?.payments?.filter(
+      payment => payment.status === 'completed',
+    ) || []
+  const paidPlans = new Set(
+    completedPayments.map(payment => payment.paymentPlan),
+  )
+  const hasPaidFullTerm = paidPlans.has('full_year')
+  const hasOfflinePending = Boolean(
+    paymentOverview?.payments?.some(
+      payment => payment.status === 'offline_pending',
+    ),
+  )
+  const paidAmount = Number(paymentOverview?.totalCollected || 0)
+  const balanceDue = Math.max(
+    0,
+    Number(
+      (
+        (paymentOverview?.balanceDue ?? calculatedTotalAmount - paidAmount) ||
+        0
+      ).toFixed(2),
+    ),
+  )
+  const termAmount = Number((calculatedTotalAmount / 3).toFixed(2))
+  const isSelectedPlanPaid =
+    hasPaidFullTerm ||
+    (paymentPlan !== 'full_year' && paidPlans.has(paymentPlan)) ||
+    (paymentPlan === 'full_year' &&
+      balanceDue <= 0 &&
+      calculatedTotalAmount > 0)
+  const selectedPaymentAmount = isSelectedPlanPaid
+    ? 0
+    : paymentPlan === 'full_year'
+      ? paymentOverview
+        ? balanceDue
+        : calculatedTotalAmount
+      : Math.min(termAmount, balanceDue || termAmount)
   const selectedPaymentPlanLabel =
     paymentPlanOptions.find(option => option.value === paymentPlan)?.label ||
-    'Full School Year'
+    'Full Term'
+  const paymentProgress = calculatedTotalAmount
+    ? Math.min(100, Math.round((paidAmount / calculatedTotalAmount) * 100))
+    : 0
 
   useEffect(() => {
     const init = async () => {
@@ -252,6 +302,7 @@ export default function PurchasePlanPage() {
         if (!school?._id) {
           toast.error('No assigned school found for this account.')
           setPlans([])
+          setPaymentOverview(null)
           return
         }
 
@@ -276,10 +327,20 @@ export default function PurchasePlanPage() {
           },
         ])
         setSelectedPlanId(school._id)
+
+        try {
+          const overviewRes = await axiosInstance.get(
+            `/payment/school/${school._id}/overview`,
+          )
+          setPaymentOverview(overviewRes.data?.data || null)
+        } catch {
+          setPaymentOverview(null)
+        }
       } catch {
         const stored = getUser<UserData>()
         if (stored?.email) setBillingEmail(stored.email)
         setTotalStudents(Number(stored?.totalStudent || 0))
+        setPaymentOverview(null)
         toast.error('Unable to load your assigned school subscription.')
       } finally {
         setLoadingPlans(false)
@@ -393,6 +454,18 @@ export default function PurchasePlanPage() {
       return
     }
 
+    if (isSelectedPlanPaid || selectedPaymentAmount <= 0) {
+      toast.error('This payment option is already paid.')
+      return
+    }
+
+    if (hasOfflinePending) {
+      toast.error(
+        'An offline payment request is already waiting for admin approval.',
+      )
+      return
+    }
+
     if (
       paymentMethod === 'card' &&
       (!stripeRef.current || !cardNumberElementRef.current)
@@ -425,10 +498,13 @@ export default function PurchasePlanPage() {
       const paymentPayload = { paymentPlan }
 
       if (paymentMethod === 'offline') {
-        await axiosInstance.post(`/payment/school/${selectedPlan._id}/offline`, {
-          ...paymentPayload,
-          offlinePaymentNote,
-        })
+        await axiosInstance.post(
+          `/payment/school/${selectedPlan._id}/offline`,
+          {
+            ...paymentPayload,
+            offlinePaymentNote,
+          },
+        )
 
         setStatus({
           type: 'success',
@@ -474,7 +550,9 @@ export default function PurchasePlanPage() {
         })
 
       const paymentData = await createPaymentIntent()
-      let { error, paymentIntent } = await confirmPayment(paymentData.clientSecret)
+      let { error, paymentIntent } = await confirmPayment(
+        paymentData.clientSecret,
+      )
 
       if (error?.message?.includes('No such payment_intent')) {
         setStatus({
@@ -557,6 +635,31 @@ export default function PurchasePlanPage() {
     }
   }
 
+  const getPlanStatus = (plan: PaymentPlan) => {
+    if (plan === 'full_year' && balanceDue <= 0 && calculatedTotalAmount > 0) {
+      return 'Paid'
+    }
+    if (hasPaidFullTerm || paidPlans.has(plan)) return 'Paid'
+    if (
+      paymentOverview?.payments?.some(
+        payment =>
+          payment.paymentPlan === plan &&
+          (payment.status === 'pending' ||
+            payment.status === 'offline_pending'),
+      )
+    ) {
+      return 'Pending'
+    }
+    return 'Due'
+  }
+
+  const getPlanAmount = (plan: PaymentPlan) => {
+    if (hasPaidFullTerm || paidPlans.has(plan)) return 0
+    if (plan === 'full_year')
+      return paymentOverview ? balanceDue : calculatedTotalAmount
+    return Math.min(termAmount, balanceDue || termAmount)
+  }
+
   return (
     <AuthShell maxWidth="max-w-[1120px]">
       <AuthLogo />
@@ -620,6 +723,61 @@ export default function PurchasePlanPage() {
                   {step}
                 </span>
               ))}
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-[#D8E4EC] bg-white p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+                    Payment progress
+                  </p>
+                  <p className="mt-1 text-[22px] font-bold text-[#063D5B]">
+                    {formatCurrency(paidAmount)} paid
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[12px] text-[#64748B]">
+                    Remaining balance
+                  </p>
+                  <p className="mt-1 text-[18px] font-bold text-[#0F172A]">
+                    {formatCurrency(balanceDue)}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
+                <div
+                  className="h-full rounded-full bg-[#6A9D23] transition-all"
+                  style={{ width: `${paymentProgress}%` }}
+                />
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                {paymentPlanOptions.map(option => (
+                  <div
+                    key={option.value}
+                    className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[12px] font-semibold text-[#0F172A]">
+                        {option.label}
+                      </p>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          getPlanStatus(option.value) === 'Paid'
+                            ? 'bg-[#DCFCE7] text-[#166534]'
+                            : getPlanStatus(option.value) === 'Pending'
+                              ? 'bg-[#FEF3C7] text-[#92400E]'
+                              : 'bg-[#E0F2FE] text-[#075985]'
+                        }`}
+                      >
+                        {getPlanStatus(option.value)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[12px] text-[#64748B]">
+                      {formatCurrency(getPlanAmount(option.value))}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -735,24 +893,29 @@ export default function PurchasePlanPage() {
                 onValueChange={value => setPaymentPlan(value as PaymentPlan)}
               >
                 <SelectTrigger className="mt-1.5 h-10 w-full rounded-lg border border-[#CBD5E1] bg-white px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10 focus:ring-offset-0">
-                  <SelectValue placeholder="Select payment option" />
+                  <SelectValue placeholder="Select payment option">
+                    {selectedPaymentPlanLabel}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border border-[#E2E8F0] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
                   {paymentPlanOptions.map(option => (
                     <SelectItem
                       key={option.value}
                       value={option.value}
+                      disabled={getPlanStatus(option.value) === 'Paid'}
                       className="cursor-pointer rounded-lg px-3 py-2.5 text-[15px] text-[#0F172A] hover:bg-[#F0F7FF] focus:bg-[#F0F7FF]"
                     >
-                      {option.label}
+                      {option.label} · {getPlanStatus(option.value)} ·{' '}
+                      {formatCurrency(getPlanAmount(option.value))}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="mt-1.5 text-[13px] text-[#64748B]">
                 {
-                  paymentPlanOptions.find(option => option.value === paymentPlan)
-                    ?.helper
+                  paymentPlanOptions.find(
+                    option => option.value === paymentPlan,
+                  )?.helper
                 }
               </p>
             </div>
@@ -768,6 +931,10 @@ export default function PurchasePlanPage() {
                   </p>
                   <p className="mt-1 text-[14px] font-semibold text-[#0F172A]">
                     {formatDate(termDueDates[field.key])}
+                  </p>
+                  <p className="mt-1 text-[12px] font-semibold text-[#063D5B]">
+                    {getPlanStatus(field.plan)} ·{' '}
+                    {formatCurrency(getPlanAmount(field.plan))}
                   </p>
                 </div>
               ))}
@@ -808,11 +975,25 @@ export default function PurchasePlanPage() {
                 <span>{formatCurrency(calculatedTotalAmount)}</span>
               </div>
               <div className="flex items-center justify-between text-[13px] text-[#64748B]">
+                <span>Already paid</span>
+                <span>{formatCurrency(paidAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[13px] text-[#64748B]">
+                <span>Remaining balance</span>
+                <span>{formatCurrency(balanceDue)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[13px] text-[#64748B]">
                 <span>Selected payment option</span>
-                <span>{selectedPaymentPlanLabel}</span>
+                <span>
+                  {selectedPaymentPlanLabel} · {getPlanStatus(paymentPlan)}
+                </span>
               </div>
               <div className="flex items-center justify-between border-t border-[#E2E8F0] pt-2 text-[15px] font-bold text-[#0F172A]">
-                <span>{paymentMethod === 'offline' ? 'Amount to approve' : 'Total due today'}</span>
+                <span>
+                  {paymentMethod === 'offline'
+                    ? 'Amount to approve'
+                    : 'Total due today'}
+                </span>
                 <span>{formatCurrency(selectedPaymentAmount)}</span>
               </div>
             </div>
@@ -982,13 +1163,21 @@ export default function PurchasePlanPage() {
                   className="mt-1.5 min-h-[96px] w-full resize-none rounded-lg border border-[#CBD5E1] px-3.5 py-3 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
                 />
                 <div className="mt-2 rounded-lg border border-[#FEF3C7] bg-[#FFFBEB] px-3 py-2 text-[12px] leading-5 text-[#92400E]">
-                  Submit this only after the school has arranged payment by
-                  wire transfer or another offline method. Admin approval will
+                  Submit this only after the school has arranged payment by wire
+                  transfer or another offline method. Admin approval will
                   activate the subscription.
                 </div>
               </div>
             ) : null}
           </div>
+
+          {isSelectedPlanPaid || hasOfflinePending ? (
+            <div className="mt-4 rounded-xl border border-[#FEF3C7] bg-[#FFFBEB] px-4 py-3 text-[13px] leading-5 text-[#92400E]">
+              {hasOfflinePending
+                ? 'An offline payment request is already pending. Admin approval will update the paid amount and balance.'
+                : 'This payment option is already paid. Choose another due term if a balance remains.'}
+            </div>
+          ) : null}
 
           {/* Status Banner */}
           {status.type !== 'idle' ? (
@@ -1017,6 +1206,9 @@ export default function PurchasePlanPage() {
               selectedPlan.price <= 0 ||
               totalStudents <= 0 ||
               (paymentMethod === 'card' && !stripeReady) ||
+              isSelectedPlanPaid ||
+              selectedPaymentAmount <= 0 ||
+              hasOfflinePending ||
               submitting ||
               loadingPlans
             }
@@ -1033,8 +1225,12 @@ export default function PurchasePlanPage() {
                 : 'Processing payment...'
               : selectedPlan
                 ? paymentMethod === 'offline'
-                  ? `Request approval for ${formatCurrency(selectedPaymentAmount)}`
-                  : `Pay ${formatCurrency(selectedPaymentAmount)} securely`
+                  ? selectedPaymentAmount > 0
+                    ? `Request approval for ${formatCurrency(selectedPaymentAmount)}`
+                    : 'No payment due'
+                  : selectedPaymentAmount > 0
+                    ? `Pay ${formatCurrency(selectedPaymentAmount)} securely`
+                    : 'No payment due'
                 : 'Assigned school required'}
           </button>
 
