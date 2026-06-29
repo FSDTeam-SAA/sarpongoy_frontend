@@ -166,7 +166,7 @@ function loadStripeScript() {
     if (existing) {
       existing.addEventListener('load', () => resolve(window.Stripe ?? null))
       existing.addEventListener('error', () =>
-        reject(new Error('Unable to load Stripe.js')),
+        reject(new Error('Unable to load card checkout assets')),
       )
       return
     }
@@ -176,7 +176,7 @@ function loadStripeScript() {
     script.async = true
     script.dataset.stripeJs = 'true'
     script.onload = () => resolve(window.Stripe ?? null)
-    script.onerror = () => reject(new Error('Unable to load Stripe.js'))
+    script.onerror = () => reject(new Error('Unable to load card checkout assets'))
     document.body.appendChild(script)
   })
 }
@@ -419,7 +419,7 @@ export default function PurchasePlanPage() {
         setStatus({
           type: 'error',
           message:
-            'Stripe checkout could not be initialized. Check the publishable key setup and reload the page.',
+            'Card checkout could not be initialized. Check the payment setup and reload the page.',
         })
       }
     }
@@ -470,7 +470,7 @@ export default function PurchasePlanPage() {
       paymentMethod === 'card' &&
       (!stripeRef.current || !cardNumberElementRef.current)
     ) {
-      toast.error('Stripe checkout is still loading.')
+      toast.error('Card checkout is still loading.')
       return
     }
 
@@ -519,12 +519,12 @@ export default function PurchasePlanPage() {
       const cardNumberElement = cardNumberElementRef.current
 
       if (!stripe || !cardNumberElement) {
-        throw new Error('Stripe checkout is still loading.')
+        throw new Error('Card checkout is still loading.')
       }
 
       setStatus({
         type: 'loading',
-        message: 'Confirming card payment with Stripe...',
+        message: 'Confirming card payment...',
       })
 
       const createPaymentIntent = async (forceNew = false) => {
@@ -664,7 +664,7 @@ export default function PurchasePlanPage() {
     <AuthShell maxWidth="max-w-[1120px]">
       <AuthLogo />
 
-      <div className="mt-4 flex items-center gap-2 rounded-2xl border border-[#D8E4EC] bg-white p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] lg:hidden">
+      <div className="sticky top-3 z-40 mt-4 flex items-center gap-2 rounded-2xl border border-[#D8E4EC] bg-white/95 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur lg:static lg:mt-4 lg:bg-white lg:backdrop-blur-0">
         <button
           type="button"
           onClick={() => setActiveTab('details')}
@@ -685,7 +685,7 @@ export default function PurchasePlanPage() {
               : 'text-[#475569]'
           }`}
         >
-          Checkout
+          Check Out
         </button>
       </div>
 
@@ -812,9 +812,10 @@ export default function PurchasePlanPage() {
                       key={plan._id}
                       type="button"
                       onClick={() => setSelectedPlanId(plan._id)}
+                      aria-pressed={isSelected}
                       className={`flex flex-col justify-between gap-4 rounded-[20px] border p-4 text-left transition sm:flex-row sm:items-center ${
                         isSelected
-                          ? 'border-[#063D5B] bg-[#063D5B] text-white shadow-[0_18px_42px_rgba(6,61,91,0.18)]'
+                          ? 'border-[#063D5B] bg-[#063D5B] text-white shadow-[0_18px_42px_rgba(6,61,91,0.18)] ring-2 ring-[#063D5B]/15'
                           : 'border-[#D8E4EC] bg-white text-[#0F172A] hover:border-[#8AA9BD] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]'
                       }`}
                     >
@@ -1029,9 +1030,10 @@ export default function PurchasePlanPage() {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('card')}
+                  aria-pressed={paymentMethod === 'card'}
                   className={`rounded-xl border px-4 py-3 text-left transition ${
                     paymentMethod === 'card'
-                      ? 'border-[#063D5B] bg-[#EEF6FB] text-[#063D5B]'
+                      ? 'border-[#063D5B] bg-[#EEF6FB] text-[#063D5B] ring-2 ring-[#063D5B]/15'
                       : 'border-[#CBD5E1] bg-white text-[#475569] hover:border-[#8AA9BD]'
                   }`}
                 >
@@ -1040,15 +1042,21 @@ export default function PurchasePlanPage() {
                     Pay by card
                   </span>
                   <span className="mt-1 block text-[12px] leading-5">
-                    Activates after Stripe confirmation.
+                    Activates after card confirmation.
                   </span>
+                  {paymentMethod === 'card' ? (
+                    <span className="mt-2 inline-flex rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-[#063D5B]">
+                      Selected
+                    </span>
+                  ) : null}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('offline')}
+                  aria-pressed={paymentMethod === 'offline'}
                   className={`rounded-xl border px-4 py-3 text-left transition ${
                     paymentMethod === 'offline'
-                      ? 'border-[#063D5B] bg-[#EEF6FB] text-[#063D5B]'
+                      ? 'border-[#063D5B] bg-[#EEF6FB] text-[#063D5B] ring-2 ring-[#063D5B]/15'
                       : 'border-[#CBD5E1] bg-white text-[#475569] hover:border-[#8AA9BD]'
                   }`}
                 >
@@ -1059,6 +1067,11 @@ export default function PurchasePlanPage() {
                   <span className="mt-1 block text-[12px] leading-5">
                     Admin approval activates access.
                   </span>
+                  {paymentMethod === 'offline' ? (
+                    <span className="mt-2 inline-flex rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-[#063D5B]">
+                      Selected
+                    </span>
+                  ) : null}
                 </button>
               </div>
             </div>
@@ -1235,8 +1248,8 @@ export default function PurchasePlanPage() {
           </button>
 
           <p className="mt-4 text-center text-[13px] leading-6 text-[#64748B]">
-            Card payments are confirmed through Stripe. Offline payments stay
-            pending until an admin approves the request.
+            Card payments are confirmed securely. Offline payments stay pending
+            until an admin approves the request.
           </p>
         </aside>
       </div>
