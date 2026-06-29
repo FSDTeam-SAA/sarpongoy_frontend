@@ -573,8 +573,19 @@ export default function ProfilePage() {
       <Navbar hideAnnouncement />
 
       {/* Top breadcrumb bar (matches design image) */}
-      <div className="fixed inset-x-0 top-[70px] z-40 bg-[#E8EAF0] px-6 py-2 text-xs text-[#6B7280] shadow-sm">
-        {activeTab === 'info' ? 'Personal Information' : 'Change Password'}
+      <div className="fixed inset-x-0 top-[70px] z-40 bg-[#E8EAF0] px-4 py-2 text-xs text-[#6B7280] shadow-sm sm:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <span>
+            {activeTab === 'info' ? 'Personal Information' : 'Change Password'}
+          </span>
+          <button
+            type="button"
+            onClick={() => router.push('/purchase-plan')}
+            className="inline-flex h-8 items-center rounded-full bg-[#063D5B] px-3 text-[12px] font-semibold text-white transition hover:bg-[var(--color-primary)] md:hidden"
+          >
+            Pay Now
+          </button>
+        </div>
       </div>
 
       <div className="pt-[calc(70px+36px)] pb-10 px-4 sm:px-8 lg:px-[90px]">
@@ -777,17 +788,17 @@ export default function ProfilePage() {
             </div>
 
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-[22px] font-bold text-[#111]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="max-w-2xl">
+                  <h2 className="text-[22px] font-bold leading-tight text-[#111]">
                     School Agreement
                   </h2>
-                  <p className="mt-1 text-[14px] text-[#6B7280]">
+                  <p className="mt-1 text-[14px] leading-6 text-[#6B7280]">
                     Review the admin-assigned school contract, per-student
                     charge, and current student limit.
                   </p>
                 </div>
-                <span className="inline-flex rounded-full bg-[#E6F4EA] px-3 py-1 text-[12px] font-semibold text-[#2F9E44]">
+                <span className="inline-flex self-start rounded-full bg-[#E6F4EA] px-3 py-1 text-[12px] font-semibold leading-5 text-[#2F9E44]">
                   Shared with admin
                 </span>
               </div>
