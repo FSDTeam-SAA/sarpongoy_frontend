@@ -15,7 +15,7 @@ import {
 import { axiosInstance } from '@/lib/axios'
 import { getAssignedSchoolAccess } from '@/lib/school-access'
 import { isMongoObjectId, normalizeSchoolNameValue, resolveSchoolName, withCacheBuster } from '@/lib/school'
-import { ChevronRight, CreditCard, LogOut, Menu, ShieldCheck, User } from 'lucide-react'
+import { ChevronRight, CreditCard, LogOut, Menu, ShieldCheck, User, X } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +55,14 @@ interface UserData {
   lastName?: string
 }
 
+type DueTerm = {
+  termId?: string
+  label?: string
+  remainingDue?: number
+  dueDate?: string
+  status?: string
+}
+
 interface NavbarProps {
   hideAnnouncement?: boolean
 }
@@ -65,6 +73,8 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [user, setUser] = useState<UserData | null>(null)
   const [schoolAccessActive, setSchoolAccessActive] = useState(false)
+  const [dueTerm, setDueTerm] = useState<DueTerm | null>(null)
+  const [dismissedDueKey, setDismissedDueKey] = useState('')
   const [avatarVersion, setAvatarVersion] = useState(Date.now())
   const [logoutModalOpen, setLogoutModalOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -85,6 +95,8 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
       const stored = getUser<UserData>()
       setUser(stored)
       setSchoolAccessActive(false)
+      setDueTerm(null)
+      setDismissedDueKey('')
       setAvatarVersion(Date.now())
       return stored
     }
@@ -115,10 +127,16 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
           ...profile,
           schoolName: normalizeSchoolNameValue(profile.schoolName, resolvedSchoolName),
         }
-        const { isActive } = await getAssignedSchoolAccess(merged)
+        const { isActive, access } = await getAssignedSchoolAccess(merged)
+        const terms = access?.paymentTerms || []
+        const nextDue =
+          terms.find(term => term.status === 'overdue') ||
+          terms.find(term => Number(term.remainingDue || 0) > 0) ||
+          null
         setStoredUser(merged)
         setUser(merged as UserData)
         setSchoolAccessActive(isActive)
+        setDueTerm(nextDue)
         setAvatarVersion(Date.now())
       })
       .catch(() => {
@@ -181,6 +199,31 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
 
   const userDisplayName = getUserDisplayName()
   const avatarSrc = withCacheBuster(user?.profilePicture || user?.schoolLogo, avatarVersion)
+  const dueNoticeKey = dueTerm
+    ? `${user?._id || user?.email || 'school'}:${dueTerm.termId || dueTerm.label || 'term'}:${dueTerm.dueDate || ''}:${dueTerm.remainingDue || 0}`
+    : ''
+  const showDueNotice =
+    Boolean(user && dueTerm && Number(dueTerm.remainingDue || 0) > 0) &&
+    !pathname?.startsWith('/purchase-plan') &&
+    dismissedDueKey !== dueNoticeKey
+
+  useEffect(() => {
+    if (!dueNoticeKey || typeof window === 'undefined') return
+    setDismissedDueKey(
+      window.sessionStorage.getItem(`payment-due-dismissed:${dueNoticeKey}`) ||
+        '',
+    )
+  }, [dueNoticeKey])
+
+  const dismissDueNotice = () => {
+    if (typeof window !== 'undefined' && dueNoticeKey) {
+      window.sessionStorage.setItem(
+        `payment-due-dismissed:${dueNoticeKey}`,
+        dueNoticeKey,
+      )
+    }
+    setDismissedDueKey(dueNoticeKey)
+  }
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full shadow-sm">
@@ -483,6 +526,57 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
           <span className="mx-auto max-w-full whitespace-normal break-words text-[15px] leading-6 font-light sm:text-[18px] sm:leading-7 lg:text-[20px] lg:leading-8">
             {announcementText}
           </span>
+        </div>
+      ) : null}
+
+      {showDueNotice ? (
+        <div className="fixed bottom-4 left-4 right-4 z-[140] mx-auto max-w-[820px] rounded-xl border border-[#D8E4EC] bg-white p-3 text-[#0F172A] shadow-[0_18px_50px_rgba(6,61,91,0.16)] sm:bottom-5 sm:flex sm:items-center sm:justify-between sm:gap-4">
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-bold text-[#063D5B]">
+              Payment due{dueTerm?.label ? `: ${dueTerm.label}` : ''}
+            </p>
+            <p className="mt-0.5 text-[12px] leading-5 text-[#64748B]">
+              ${Number(dueTerm?.remainingDue || 0).toLocaleString()} remaining
+              {dueTerm?.dueDate
+                ? ` · due ${new Date(dueTerm.dueDate).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })}`
+                : ''}
+            </p>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2 sm:mt-0">
+            <button
+              type="button"
+              onClick={() => router.push('/purchase-plan')}
+              className="h-9 rounded-lg bg-[#063D5B] px-4 text-[12px] font-bold text-white transition hover:bg-[#0A557D]"
+            >
+              Pay Now
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/profile#subscription-payment')}
+              className="h-9 rounded-lg border border-[#F59E0B] bg-white px-4 text-[12px] font-bold text-[#92400E] transition hover:bg-[#FEF3C7]"
+            >
+              Profile
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/profile?tab=settings')}
+              className="h-9 rounded-lg border border-[#F59E0B] bg-white px-4 text-[12px] font-bold text-[#92400E] transition hover:bg-[#FEF3C7]"
+            >
+              Settings
+            </button>
+            <button
+              type="button"
+              onClick={dismissDueNotice}
+              aria-label="Skip payment reminder for now"
+              className="flex size-9 items-center justify-center rounded-lg border border-[#CBD5E1] bg-white text-[#64748B] transition hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
         </div>
       ) : null}
     </header>

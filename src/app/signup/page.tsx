@@ -20,7 +20,10 @@ interface School {
   _id: string
   name: string
   subscribePrice?: number
+  totalStudent?: number
+  totalContractAmount?: number
   NDA?: string
+  school?: Array<{ totalStudent?: number }>
 }
 
 const isUrl = (value?: string) => Boolean(value && /^(https?:|blob:|data:)\S+/i.test(value.trim()))
@@ -38,6 +41,19 @@ const getNdaUrl = (nda?: string) => {
   if (value.includes('/')) return `${getApiOrigin()}/${value.replace(/^\/+/, '')}`
   return ''
 }
+
+const getSchoolPopulation = (school?: School | null) =>
+  Number(
+    school?.totalStudent ??
+      (school?.totalContractAmount && school?.subscribePrice
+        ? Math.round(Number(school.totalContractAmount) / Number(school.subscribePrice))
+        : undefined) ??
+      school?.school?.reduce(
+        (total, member) => total + Number(member?.totalStudent || 0),
+        0,
+      ) ??
+      0,
+  )
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -77,6 +93,7 @@ export default function SignUpPage() {
         ...prev,
         schoolId: '',
         selectedSchoolName: '',
+        totalStudent: '',
       }))
       setSelectedSchoolDetails(null)
       return
@@ -89,6 +106,7 @@ export default function SignUpPage() {
       ...prev,
       schoolId: selectedSchool._id,
       selectedSchoolName: selectedSchool.name,
+      totalStudent: String(getSchoolPopulation(selectedSchool)),
     }))
     setSelectedSchoolDetails(selectedSchool)
     setSchoolDetailsLoading(true)
@@ -99,6 +117,11 @@ export default function SignUpPage() {
         const schoolDetails = res.data?.data as School | undefined
         const nextSchool = schoolDetails?._id ? schoolDetails : selectedSchool
         setSelectedSchoolDetails(nextSchool)
+        const population = getSchoolPopulation(nextSchool)
+        setForm(prev => ({
+          ...prev,
+          totalStudent: String(population),
+        }))
       })
       .catch(() => {
         setSelectedSchoolDetails(selectedSchool)
@@ -294,24 +317,38 @@ export default function SignUpPage() {
               />
             </div>
 
-            <div>
-              <label htmlFor="population" className="text-[15px] font-normal leading-none">
-                Total School Population
-              </label>
-              <input
-                id="population"
-                name="totalStudent"
-                type="number"
-                min="0"
-                inputMode="numeric"
-                placeholder="Enter total school population"
-                value={form.totalStudent}
-                onChange={handleChange}
-                className="mt-2 h-12 w-full rounded-sm border border-[#CACACA] px-4 text-[15px] outline-none focus:border-[var(--color-primary)]"
-              />
-              <p className="mt-2 text-[12px] text-[#6B7280]">
-                Enter the current total school population for your account.
-              </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label htmlFor="perStudentCharge" className="text-[15px] font-normal leading-none">
+                  Per-student Charge
+                </label>
+                <input
+                  id="perStudentCharge"
+                  type="text"
+                  value={
+                    selectedSchoolDetails?.subscribePrice !== undefined
+                      ? `$${Number(selectedSchoolDetails.subscribePrice || 0).toLocaleString()}`
+                      : ''
+                  }
+                  disabled
+                  placeholder="Auto-filled after school selection"
+                  className="mt-2 h-12 w-full rounded-sm border border-[#CACACA] bg-[#F3F4F6] px-4 text-[15px] text-[#4B5563] outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="population" className="text-[15px] font-normal leading-none">
+                  Total School Population
+                </label>
+                <input
+                  id="population"
+                  name="totalStudent"
+                  type="number"
+                  value={form.totalStudent}
+                  disabled
+                  placeholder="Auto-filled after school selection"
+                  className="mt-2 h-12 w-full rounded-sm border border-[#CACACA] bg-[#F3F4F6] px-4 text-[15px] text-[#4B5563] outline-none"
+                />
+              </div>
             </div>
 
             {form.schoolId ? (

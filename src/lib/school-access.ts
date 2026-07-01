@@ -11,6 +11,14 @@ export interface SchoolAccessDetails {
   _id?: string
   name?: string
   subscribePrice?: number
+  totalStudent?: number
+  totalContractAmount?: number
+  paymentTerms?: Array<{
+    termId?: string
+    label?: string
+    amount?: number
+    dueDate?: string
+  }>
   NDA?: string
   termConfig?: {
     firstTermDueDate?: string
@@ -26,6 +34,13 @@ interface SchoolPaymentAccess {
   isRestricted?: boolean
   hasConfiguredDueDate?: boolean
   reason?: string
+  paymentTerms?: Array<{
+    termId?: string
+    label?: string
+    remainingDue?: number
+    dueDate?: string
+    status?: string
+  }>
 }
 
 export function getAssignedSchoolId(user?: SchoolAccessUser | null) {
