@@ -83,18 +83,8 @@ interface SchoolPaymentOverview {
   schoolId?: string
   schoolName?: string
   paymentAccessStatus?: 'active' | 'restricted'
-  activeTerm?:
-    | 'first_term'
-    | 'second_term'
-    | 'third_term'
-    | 'full_payment'
-    | 'none'
-  overdueTerm?:
-    | 'first_term'
-    | 'second_term'
-    | 'third_term'
-    | 'full_payment'
-    | 'none'
+  activeTerm?: string
+  overdueTerm?: string
   isRestricted?: boolean
   reason?: string
   hasConfiguredDueDate?: boolean
@@ -121,6 +111,15 @@ interface SchoolPaymentOverview {
     note?: string
     createdAt?: string
   }>
+  paymentTerms?: Array<{
+    termId?: string
+    label?: string
+    amount?: number
+    amountPaid?: number
+    remainingDue?: number
+    dueDate?: string
+    status?: string
+  }>
 }
 
 interface StudentRow {
@@ -136,6 +135,13 @@ interface StudentMeta {
   page: number
   limit: number
   total: number
+}
+
+type PaymentDueDateItem = {
+  label: string
+  dueDate?: string
+  remainingDue?: number
+  status?: string
 }
 
 const STUDENTS_PER_PAGE = 10
@@ -296,6 +302,12 @@ export default function ProfilePage() {
     fetchProfile()
   }, [fetchProfile, router])
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('tab=settings')) {
+      setActiveTab('password')
+    }
+  }, [])
+
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -440,7 +452,11 @@ export default function ProfilePage() {
     if (plan === 'second_term') return 'Second Term'
     if (plan === 'third_term') return 'Third Term'
     if (plan === 'full_year') return 'Full Term'
-    return 'N/A'
+    if (plan === 'full_payment') return 'Full Payment'
+    if (plan?.startsWith('term_')) {
+      return `Term ${plan.replace('term_', '')}`
+    }
+    return plan ? plan.replace(/_/g, ' ') : 'N/A'
   }
 
   const formatPaymentStatus = (status?: string) => {
@@ -484,6 +500,26 @@ export default function ProfilePage() {
       ? Math.min(100, Math.round((usedStudents / planCapacity) * 100))
       : 0
   const isAtCapacity = planCapacity > 0 && usedStudents >= planCapacity
+  const paymentTerms = paymentOverview?.paymentTerms || []
+  const nextDueTerm =
+    paymentTerms.find(term => term.status === 'overdue') ||
+    paymentTerms.find(term => Number(term.remainingDue || 0) > 0) ||
+    null
+  const hasPaymentDue = Number(paymentOverview?.balanceDue || 0) > 0
+  const legacyDueDates: PaymentDueDateItem[] = [
+    { label: 'First Term', dueDate: schoolDetails?.termConfig?.firstTermDueDate },
+    { label: 'Second Term', dueDate: schoolDetails?.termConfig?.secondTermDueDate },
+    { label: 'Third Term', dueDate: schoolDetails?.termConfig?.thirdTermDueDate },
+    { label: 'Full Payment', dueDate: schoolDetails?.termConfig?.fullPaymentDueDate },
+  ].filter(item => Boolean(item.dueDate))
+  const dueDateItems: PaymentDueDateItem[] = paymentTerms.length
+    ? paymentTerms.map(term => ({
+        label: term.label || formatPaymentPlan(term.termId),
+        dueDate: term.dueDate,
+        remainingDue: term.remainingDue,
+        status: term.status,
+      }))
+    : legacyDueDates
 
   const fetchStudents = useCallback(
     async (page = 1) => {
@@ -874,6 +910,43 @@ export default function ProfilePage() {
                 </button>
               </div>
 
+              {hasPaymentDue ? (
+                <div className="mt-5 flex flex-col gap-3 rounded-lg border border-[#FBBF24] bg-[#FFFBEB] p-4 text-[#92400E] md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-[14px] font-bold">
+                      Payment due
+                      {nextDueTerm?.label ? `: ${nextDueTerm.label}` : ''}
+                    </p>
+                    <p className="mt-1 text-[13px] leading-5">
+                      {formatCurrency(
+                        Number(
+                          nextDueTerm?.remainingDue ??
+                            paymentOverview?.balanceDue ??
+                            0,
+                        ),
+                      )}{' '}
+                      is still unpaid. Complete payment to keep access current.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => router.push('/purchase-plan')}
+                      className="h-9 rounded-md bg-[#063D5B] px-4 text-[13px] font-bold text-white transition hover:bg-[var(--color-primary)]"
+                    >
+                      Pay Now
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('password')}
+                      className="h-9 rounded-md border border-[#F59E0B] bg-white px-4 text-[13px] font-bold text-[#92400E] transition hover:bg-[#FEF3C7]"
+                    >
+                      Settings
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-6 grid gap-4 md:grid-cols-4">
                 <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
                   <p className="text-[13px] font-medium text-[#6B7280]">
@@ -893,18 +966,19 @@ export default function ProfilePage() {
                     Next Due Term
                   </p>
                   <p className="mt-2 text-[20px] font-bold text-[#111]">
-                    {paymentOverview?.overdueTerm &&
-                    paymentOverview.overdueTerm !== 'none'
-                      ? formatPaymentPlan(paymentOverview.overdueTerm)
-                      : paymentOverview?.activeTerm &&
-                          paymentOverview.activeTerm !== 'none'
-                        ? formatPaymentPlan(paymentOverview.activeTerm)
-                        : 'None'}
+                    {nextDueTerm?.label ||
+                      (paymentOverview?.overdueTerm &&
+                      paymentOverview.overdueTerm !== 'none'
+                        ? formatPaymentPlan(paymentOverview.overdueTerm)
+                        : paymentOverview?.activeTerm &&
+                            paymentOverview.activeTerm !== 'none'
+                          ? formatPaymentPlan(paymentOverview.activeTerm)
+                          : 'None')}
                   </p>
                   <p className="mt-1 text-[12px] text-[#6B7280]">
-                    {schoolDetails?.termConfig?.fullPaymentDueDate
-                      ? 'Full payment deadline is configured in school setup.'
-                      : 'No full payment due date configured.'}
+                    {nextDueTerm?.dueDate
+                      ? `Due ${new Date(nextDueTerm.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                      : 'No unpaid term due date found.'}
                   </p>
                 </div>
 
@@ -942,40 +1016,29 @@ export default function ProfilePage() {
                     Due Dates
                   </p>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {[
-                      [
-                        'First Term',
-                        schoolDetails?.termConfig?.firstTermDueDate,
-                      ],
-                      [
-                        'Second Term',
-                        schoolDetails?.termConfig?.secondTermDueDate,
-                      ],
-                      [
-                        'Third Term',
-                        schoolDetails?.termConfig?.thirdTermDueDate,
-                      ],
-                      [
-                        'Full Payment',
-                        schoolDetails?.termConfig?.fullPaymentDueDate,
-                      ],
-                    ].map(([label, value]) => (
+                    {dueDateItems.map(item => (
                       <div
-                        key={label}
+                        key={item.label}
                         className="rounded-md bg-white px-3 py-2"
                       >
                         <p className="text-[12px] font-medium text-[#6B7280]">
-                          {label}
+                          {item.label}
                         </p>
                         <p className="mt-1 text-[14px] font-semibold text-[#0A0A0B]">
-                          {value
-                            ? new Date(value).toLocaleDateString('en-GB', {
+                          {item.dueDate
+                            ? new Date(item.dueDate).toLocaleDateString('en-GB', {
                                 day: '2-digit',
                                 month: 'short',
                                 year: 'numeric',
                               })
                             : 'Not set'}
                         </p>
+                        {'remainingDue' in item && item.remainingDue !== undefined ? (
+                          <p className="mt-1 text-[12px] font-medium text-[#64748B]">
+                            {formatPaymentStatus(String(item.status || 'pending'))} ·{' '}
+                            {formatCurrency(Number(item.remainingDue || 0))} due
+                          </p>
+                        ) : null}
                       </div>
                     ))}
                   </div>
