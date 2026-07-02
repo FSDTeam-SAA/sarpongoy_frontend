@@ -721,9 +721,16 @@ export default function PurchasePlanPage() {
               </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 {paymentTerms.map(term => (
-                  <div
+                  <button
+                    type="button"
                     key={term.termId}
-                    className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2"
+                    onClick={() => {
+                      if (term.remainingDue <= 0) return
+                      setPaymentPlan(term.termId)
+                      setActiveTab('checkout')
+                    }}
+                    disabled={term.remainingDue <= 0}
+                    className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left transition hover:border-[#8AA9BD] hover:bg-white disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:bg-[#F8FAFC]"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-[12px] font-semibold text-[#0F172A]">
@@ -746,7 +753,7 @@ export default function PurchasePlanPage() {
                     <p className="mt-1 text-[12px] text-[#64748B]">
                       Due {formatCurrency(term.remainingDue)}
                     </p>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

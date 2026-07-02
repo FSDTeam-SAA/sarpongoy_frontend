@@ -303,10 +303,56 @@ export default function ProfilePage() {
   }, [fetchProfile, router])
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.search.includes('tab=settings')) {
-      setActiveTab('password')
+    if (typeof window === 'undefined') return
+
+    const getUrlTarget = () => {
+      if (window.location.search.includes('tab=settings')) return 'settings'
+      if (window.location.hash === '#subscription-payment') {
+        return 'subscription-payment'
+      }
+      return ''
     }
-  }, [])
+
+    const applyTarget = (target = '') => {
+      const nextTarget =
+        target ||
+        window.sessionStorage.getItem('profile-navigation-target') ||
+        getUrlTarget()
+
+      if (nextTarget === 'settings') {
+        setActiveTab('password')
+        window.sessionStorage.removeItem('profile-navigation-target')
+        return
+      }
+
+      if (nextTarget === 'subscription-payment') {
+        setActiveTab('info')
+        if (loading) return
+        window.sessionStorage.removeItem('profile-navigation-target')
+        window.setTimeout(() => {
+          document
+            .getElementById('subscription-payment')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 80)
+      }
+    }
+
+    const handleProfileTarget = (event: Event) => {
+      applyTarget((event as CustomEvent<string>).detail)
+    }
+    const handleUrlTarget = () => applyTarget()
+
+    applyTarget()
+    window.addEventListener('profile-navigation-target', handleProfileTarget)
+    window.addEventListener('hashchange', handleUrlTarget)
+    window.addEventListener('popstate', handleUrlTarget)
+
+    return () => {
+      window.removeEventListener('profile-navigation-target', handleProfileTarget)
+      window.removeEventListener('hashchange', handleUrlTarget)
+      window.removeEventListener('popstate', handleUrlTarget)
+    }
+  }, [loading])
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
