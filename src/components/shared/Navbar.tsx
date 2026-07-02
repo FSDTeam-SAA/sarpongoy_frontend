@@ -79,6 +79,11 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
   const [logoutModalOpen, setLogoutModalOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isSchoolPage = pathname?.startsWith('/school')
+  const accountHomeHref = user
+    ? schoolAccessActive
+      ? '/profile'
+      : '/purchase-plan'
+    : '/'
   const announcementText = isSchoolPage
     ? 'Designed for Forward-Thinking Schools. More Value for Parents.'
     : 'Designed to improve exam readiness, strengthen classroom consistency, and elevate overall school performance'
@@ -155,6 +160,31 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
 
   const handlePaymentNav = () => {
     router.push('/purchase-plan')
+  }
+
+  const getNavHref = (href: string) => {
+    if (href === '/' && user) return accountHomeHref
+    return href
+  }
+
+  const isNavActive = (href: string) => {
+    const resolvedHref = getNavHref(href)
+    if (resolvedHref === '/') return pathname === '/'
+    return Boolean(pathname?.startsWith(resolvedHref))
+  }
+
+  const openProfileTarget = (
+    href: string,
+    target: 'subscription-payment' | 'settings',
+  ) => {
+    dismissDueNotice()
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('profile-navigation-target', target)
+      window.dispatchEvent(
+        new CustomEvent('profile-navigation-target', { detail: target }),
+      )
+    }
+    router.push(href)
   }
 
   const confirmLogout = () => {
@@ -240,14 +270,12 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
 
           <div className="hidden items-center gap-8 md:flex">
             {navLinks.map(link => {
-              const isActive =
-                link.href === '/'
-                  ? pathname === '/'
-                  : pathname.startsWith(link.href)
+              const href = getNavHref(link.href)
+              const isActive = isNavActive(link.href)
               return (
                 <Link
                   key={link.href}
-                  href={link.href}
+                  href={href}
                   className={cn(
                     'relative flex h-full items-center px-4 py-5 text-xl leading-[1.5] tracking-[0] transition-colors',
                     isActive
@@ -369,15 +397,13 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
           <div className="flex flex-1 flex-col px-4 py-4">
             <div className="flex flex-col gap-1">
               {navLinks.map(link => {
-                const isActive =
-                  link.href === '/'
-                    ? pathname === '/'
-                    : pathname.startsWith(link.href)
+                const href = getNavHref(link.href)
+                const isActive = isNavActive(link.href)
 
                 return (
                   <Link
                     key={link.href}
-                    href={link.href}
+                    href={href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
                       'rounded-xl px-4 py-3 text-base font-medium transition-colors',
@@ -549,21 +575,26 @@ export default function Navbar({ hideAnnouncement = false }: NavbarProps) {
           <div className="mt-3 flex flex-wrap gap-2 sm:mt-0">
             <button
               type="button"
-              onClick={() => router.push('/purchase-plan')}
+              onClick={() => {
+                dismissDueNotice()
+                router.push('/purchase-plan')
+              }}
               className="h-9 rounded-lg bg-[#063D5B] px-4 text-[12px] font-bold text-white transition hover:bg-[#0A557D]"
             >
               Pay Now
             </button>
             <button
               type="button"
-              onClick={() => router.push('/profile#subscription-payment')}
+              onClick={() =>
+                openProfileTarget('/profile#subscription-payment', 'subscription-payment')
+              }
               className="h-9 rounded-lg border border-[#F59E0B] bg-white px-4 text-[12px] font-bold text-[#92400E] transition hover:bg-[#FEF3C7]"
             >
               Profile
             </button>
             <button
               type="button"
-              onClick={() => router.push('/profile?tab=settings')}
+              onClick={() => openProfileTarget('/profile?tab=settings', 'settings')}
               className="h-9 rounded-lg border border-[#F59E0B] bg-white px-4 text-[12px] font-bold text-[#92400E] transition hover:bg-[#FEF3C7]"
             >
               Settings
