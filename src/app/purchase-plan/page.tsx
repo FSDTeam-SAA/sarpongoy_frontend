@@ -624,7 +624,7 @@ export default function PurchasePlanPage() {
   }
 
   return (
-    <AuthShell maxWidth="max-w-[1120px]">
+    <AuthShell maxWidth="max-w-[1120px]" homeHref="/profile">
       <AuthLogo />
 
       <div className="sticky top-3 z-40 mt-4 flex items-center gap-2 rounded-2xl border border-[#D8E4EC] bg-white/95 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur lg:static lg:mt-4 lg:bg-white lg:backdrop-blur-0">
