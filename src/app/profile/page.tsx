@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Ellipsis,
   FileText,
+  Search,
 } from 'lucide-react'
 import Navbar from '@/components/shared/Navbar'
 import { axiosInstance } from '@/lib/axios'
@@ -135,7 +136,12 @@ interface StudentMeta {
   page: number
   limit: number
   total: number
+  overallTotal?: number
+  gradeLevels?: string[]
 }
+
+type StudentSortBy = 'createdAt' | 'studentId' | 'gradeLevel'
+type SortOrder = 'asc' | 'desc'
 
 type PaymentDueDateItem = {
   label: string
@@ -193,6 +199,13 @@ export default function ProfilePage() {
   })
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [uploadingStudents, setUploadingStudents] = useState(false)
+  const [studentSearchInput, setStudentSearchInput] = useState('')
+  const [studentSearch, setStudentSearch] = useState('')
+  const [studentGrade, setStudentGrade] = useState('')
+  const [studentSortBy, setStudentSortBy] =
+    useState<StudentSortBy>('createdAt')
+  const [studentSortOrder, setStudentSortOrder] =
+    useState<SortOrder>('desc')
   const [invoiceDownloadingId, setInvoiceDownloadingId] = useState('')
   const [schoolDetails, setSchoolDetails] = useState<SchoolDetails | null>(null)
   const [paymentOverview, setPaymentOverview] =
@@ -540,7 +553,7 @@ export default function ProfilePage() {
   }
 
   const planCapacity = profile?.totalStudent ?? 0
-  const usedStudents = studentMeta.total
+  const usedStudents = studentMeta.overallTotal ?? studentMeta.total
   const usagePercent =
     planCapacity > 0
       ? Math.min(100, Math.round((usedStudents / planCapacity) * 100))
@@ -574,9 +587,11 @@ export default function ProfilePage() {
         const params = new URLSearchParams({
           page: String(page),
           limit: String(STUDENTS_PER_PAGE),
-          sortBy: 'createdAt',
-          sortOrder: 'desc',
+          sortBy: studentSortBy,
+          sortOrder: studentSortOrder,
         })
+        if (studentSearch) params.set('searchTerm', studentSearch)
+        if (studentGrade) params.set('gradeLevel', studentGrade)
         const res = await axiosInstance.get(`/exclesheet?${params.toString()}`)
         const data = res.data?.data as StudentRow[] | undefined
         const meta = res.data?.meta as StudentMeta | undefined
@@ -586,6 +601,8 @@ export default function ProfilePage() {
           page: meta?.page || page,
           limit: meta?.limit || STUDENTS_PER_PAGE,
           total: meta?.total || 0,
+          overallTotal: meta?.overallTotal ?? meta?.total ?? 0,
+          gradeLevels: meta?.gradeLevels || [],
         })
       } catch (err: unknown) {
         const error = err as {
@@ -602,8 +619,16 @@ export default function ProfilePage() {
         setLoadingStudents(false)
       }
     },
-    [router],
+    [router, studentGrade, studentSearch, studentSortBy, studentSortOrder],
   )
+
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setStudentSearch(studentSearchInput.trim()),
+      300,
+    )
+    return () => window.clearTimeout(timeout)
+  }, [studentSearchInput])
 
   useEffect(() => {
     if (loading || activeTab !== 'info') return
@@ -1232,6 +1257,59 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              <div className="mt-6 grid gap-3 md:grid-cols-[minmax(240px,1fr)_180px_190px_140px]">
+                <label className="relative">
+                  <span className="sr-only">Search students</span>
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94A3B8]" />
+                  <input
+                    type="search"
+                    value={studentSearchInput}
+                    onChange={event => setStudentSearchInput(event.target.value)}
+                    placeholder="Search name, ID, grade..."
+                    className="h-11 w-full rounded-md border border-[#CBD5E1] bg-white pl-10 pr-3 text-[14px] text-[#111827] outline-none transition placeholder:text-[#94A3B8] focus:border-[#063D5B] focus:ring-1 focus:ring-[#063D5B]"
+                  />
+                </label>
+
+                <select
+                  value={studentGrade}
+                  onChange={event => setStudentGrade(event.target.value)}
+                  aria-label="Filter by grade"
+                  className="h-11 rounded-md border border-[#CBD5E1] bg-white px-3 text-[14px] text-[#334155] outline-none focus:border-[#063D5B] focus:ring-1 focus:ring-[#063D5B]"
+                >
+                  <option value="">All grades</option>
+                  {studentMeta.gradeLevels?.map(grade => (
+                    <option key={grade} value={grade}>
+                      {grade}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={studentSortBy}
+                  onChange={event =>
+                    setStudentSortBy(event.target.value as StudentSortBy)
+                  }
+                  aria-label="Sort students by"
+                  className="h-11 rounded-md border border-[#CBD5E1] bg-white px-3 text-[14px] text-[#334155] outline-none focus:border-[#063D5B] focus:ring-1 focus:ring-[#063D5B]"
+                >
+                  <option value="createdAt">Sort by: Recently added</option>
+                  <option value="studentId">Sort by: Student ID</option>
+                  <option value="gradeLevel">Sort by: Grade level</option>
+                </select>
+
+                <select
+                  value={studentSortOrder}
+                  onChange={event =>
+                    setStudentSortOrder(event.target.value as SortOrder)
+                  }
+                  aria-label="Sort order"
+                  className="h-11 rounded-md border border-[#CBD5E1] bg-white px-3 text-[14px] text-[#334155] outline-none focus:border-[#063D5B] focus:ring-1 focus:ring-[#063D5B]"
+                >
+                  <option value="asc">Ascending</option>
+                  <option value="desc">Descending</option>
+                </select>
+              </div>
+
               <div className="mt-8 overflow-hidden rounded-sm border border-[#E5E7EB]">
                 <div className="overflow-x-auto">
                   <table className="min-w-[760px] w-full border-collapse text-left">
@@ -1285,7 +1363,9 @@ export default function ProfilePage() {
                             className="px-6 py-10 text-center text-[#6B7280]"
                             colSpan={5}
                           >
-                            No student records found.
+                            {studentSearch || studentGrade
+                              ? 'No students match your filters.'
+                              : 'No student records found.'}
                           </td>
                         </tr>
                       )}
