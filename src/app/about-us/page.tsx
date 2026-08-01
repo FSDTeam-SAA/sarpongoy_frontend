@@ -231,3 +231,10 @@ export default function AboutUsPage() {
     </main>
   )
 }
+
+// <p className="mt-5 text-[15px] font-normal leading-[25px] tracking-[0] text-[#333333] sm:mt-6 sm:text-[16px] sm:leading-[26px]">
+//                 iLearnReady operations in Ghana are supported by ETIA Ghana
+//                 Operations Ltd, a subsidiary of the Education Technology
+//                 Institute of America (ETIA), a Delaware-based organization
+//                 focused on developing scalable education solutions.
+//               </p>
