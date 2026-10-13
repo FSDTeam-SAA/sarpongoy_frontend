@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CalendarDays,
+  CheckCircle2,
   CreditCard,
   Landmark,
   Loader2,
@@ -93,8 +94,37 @@ interface StripeInstance {
     data: Record<string, unknown>,
   ) => Promise<{
     error?: { message?: string }
-    paymentIntent?: { id: string; status: string }
+    paymentIntent?: {
+      id: string
+      status: string
+      amount?: number
+      amount_received?: number
+      currency?: string
+    }
   }>
+}
+
+interface PaymentConfirmation {
+  paymentIntentId: string
+  schoolId: string
+  schoolName: string
+  termId: string
+  termLabel: string
+  amount: number
+  currency: string
+  billingEmail: string
+  paidAt: string
+  status: 'pending' | 'processing' | 'succeeded'
+  receiptSent: boolean
+}
+
+interface ConfirmedSchoolPayment {
+  paymentIntentId: string
+  status: string
+  amount: number
+  currency: string
+  billingEmail: string
+  receiptSent: boolean
 }
 
 type StripeFactory = (publishableKey: string) => StripeInstance
@@ -107,10 +137,10 @@ const STRIPE_PUBLISHABLE_KEY =
 
 const paymentSteps = ['Offline payments activate after admin approval']
 
-const formatCurrency = (amount: number) =>
+const formatCurrency = (amount: number, currency = 'USD') =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currency.toUpperCase(),
     minimumFractionDigits: 2,
   }).format(amount || 0)
 
@@ -164,6 +194,8 @@ export default function PurchasePlanPage() {
   const cardExpiryElementRef = useRef<StripeCardElementInstance | null>(null)
   const cardCvcElementRef = useRef<StripeCardElementInstance | null>(null)
   const stripeRef = useRef<StripeInstance | null>(null)
+  const paymentInFlightRef = useRef(false)
+  const confirmationStorageKeyRef = useRef('')
 
   const [plans, setPlans] = useState<CheckoutPlan[]>([])
   const [selectedPlanId, setSelectedPlanId] = useState<string>('')
@@ -180,6 +212,13 @@ export default function PurchasePlanPage() {
   const [paymentOverview, setPaymentOverview] =
     useState<SchoolPaymentOverview | null>(null)
   const [offlinePaymentNote, setOfflinePaymentNote] = useState('')
+  const [paymentConfirmation, setPaymentConfirmation] =
+    useState<PaymentConfirmation | null>(null)
+  const [accessActivated, setAccessActivated] = useState(false)
+  const [checkingAccess, setCheckingAccess] = useState(false)
+  const [verificationAttempt, setVerificationAttempt] = useState(0)
+  const [activationNotice, setActivationNotice] = useState('')
+  const hasPaymentConfirmation = Boolean(paymentConfirmation)
   const [status, setStatus] = useState<{
     type: 'idle' | 'loading' | 'success' | 'error'
     message: string
@@ -232,6 +271,30 @@ export default function PurchasePlanPage() {
     ? Math.min(100, Math.round((paidAmount / calculatedTotalAmount) * 100))
     : 0
 
+  const savePaymentConfirmation = (confirmation: PaymentConfirmation) => {
+    setPaymentConfirmation(confirmation)
+    try {
+      if (confirmationStorageKeyRef.current) {
+        window.sessionStorage.setItem(
+          confirmationStorageKeyRef.current,
+          JSON.stringify(confirmation),
+        )
+      }
+    } catch {
+      // A successful payment remains visible even if browser storage is disabled.
+    }
+  }
+
+  const clearStoredConfirmation = () => {
+    try {
+      if (confirmationStorageKeyRef.current) {
+        window.sessionStorage.removeItem(confirmationStorageKeyRef.current)
+      }
+    } catch {
+      // Storage is optional; payment verification always happens on the server.
+    }
+  }
+
   useEffect(() => {
     const init = async () => {
       const token = getToken()
@@ -282,6 +345,30 @@ export default function PurchasePlanPage() {
         ])
         setSelectedPlanId(school._id)
 
+        const accountId = profile?._id || stored?._id || checkoutEmail
+        confirmationStorageKeyRef.current =
+          `school-payment-confirmation:${accountId}:${school._id}`
+        try {
+          const saved = window.sessionStorage.getItem(
+            confirmationStorageKeyRef.current,
+          )
+          if (saved) {
+            const confirmation = JSON.parse(saved) as PaymentConfirmation
+            if (
+              confirmation.schoolId === school._id &&
+              typeof confirmation.paymentIntentId === 'string' &&
+              confirmation.paymentIntentId.startsWith('pi_') &&
+              Number.isFinite(confirmation.amount) &&
+              /^[a-z]{3}$/i.test(confirmation.currency) &&
+              ['pending', 'processing', 'succeeded'].includes(confirmation.status)
+            ) {
+              setPaymentConfirmation(confirmation)
+            }
+          }
+        } catch {
+          // Ignore incomplete checkout records.
+        }
+
         try {
           const overviewRes = await axiosInstance.get(
             `/payment/school/${school._id}/overview`,
@@ -312,6 +399,7 @@ export default function PurchasePlanPage() {
   }, [router])
 
   useEffect(() => {
+    if (hasPaymentConfirmation) return
     let cancelled = false
 
     const setupStripe = async () => {
@@ -397,19 +485,96 @@ export default function PurchasePlanPage() {
       cardCvcElementRef.current = null
       stripeRef.current = null
     }
-  }, [])
+  }, [hasPaymentConfirmation])
 
   useEffect(() => {
-    if (!dueTerm || typeof window === 'undefined') return
+    if (!paymentConfirmation) return
+    let cancelled = false
+    const confirmation = paymentConfirmation
+
+    const verifyPaymentAndAccess = async () => {
+      setCheckingAccess(true)
+      setActivationNotice('Confirming your payment and school access...')
+      try {
+        for (let attempt = 0; attempt < 8 && !cancelled; attempt += 1) {
+          try {
+            const result = await axiosInstance.post(
+              `/payment/school/${confirmation.schoolId}/confirm`,
+              { paymentIntentId: confirmation.paymentIntentId },
+            )
+            if (cancelled) return
+            const payment = result.data?.data as ConfirmedSchoolPayment
+            if (['completed', 'succeeded'].includes(payment.status)) {
+              const verified = {
+                ...confirmation,
+                status: 'succeeded' as const,
+                amount: payment.amount,
+                currency: payment.currency,
+                billingEmail: payment.billingEmail || confirmation.billingEmail,
+                receiptSent: Boolean(payment.receiptSent),
+              }
+              savePaymentConfirmation(verified)
+              const res = await axiosInstance.get('/user/profile')
+              const profile = res.data?.data as UserData
+              const stored = getUser<UserData>()
+              if (profile && stored) setUser({ ...stored, ...profile })
+              const { isActive } = await getAssignedSchoolAccess(profile)
+              if (cancelled) return
+              if (isActive) {
+                setAccessActivated(true)
+                setActivationNotice('Your school access is active.')
+                return
+              }
+            } else if (
+              ['canceled', 'requires_payment_method', 'requires_confirmation', 'requires_action'].includes(
+                payment.status,
+              )
+            ) {
+              clearStoredConfirmation()
+              setPaymentConfirmation(null)
+              setStatus({
+                type: 'error',
+                message: payment.status === 'requires_action'
+                  ? 'Card authentication was not completed. Confirm your card payment again to finish authentication.'
+                  : 'Your payment was not completed. Please check your card details and try again.',
+              })
+              return
+            }
+          } catch {
+            // Keep the confirmed charge visible while reconciliation is unavailable.
+          }
+          if (attempt < 7) await delay(1200)
+        }
+        if (!cancelled) {
+          setActivationNotice(
+            'Payment verification or access activation is still pending. Check again shortly; please do not make another payment.',
+          )
+        }
+      } finally {
+        if (!cancelled) setCheckingAccess(false)
+      }
+    }
+
+    verifyPaymentAndAccess()
+    return () => {
+      cancelled = true
+    }
+    // Re-check only for a new payment or an explicit status check.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentConfirmation?.paymentIntentId, verificationAttempt])
+
+  useEffect(() => {
+    if (paymentConfirmation || !dueTerm || typeof window === 'undefined') return
     const key = `payment-due-toast-${dueTerm.termId}`
     if (window.sessionStorage.getItem(key)) return
     toast.warning(
       `Payment due: ${dueTerm.label} - ${formatCurrency(dueTerm.remainingDue)}`,
     )
     window.sessionStorage.setItem(key, '1')
-  }, [dueTerm])
+  }, [dueTerm, paymentConfirmation])
 
   const handlePayment = async () => {
+    if (paymentInFlightRef.current || paymentConfirmation) return
     if (!selectedPlan) {
       toast.error('No assigned school subscription found.')
       return
@@ -455,8 +620,8 @@ export default function PurchasePlanPage() {
       return
     }
 
-    if (!billingEmail.trim()) {
-      toast.error('Please enter a billing email.')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingEmail.trim())) {
+      toast.error('Please enter a valid billing email.')
       return
     }
 
@@ -465,6 +630,7 @@ export default function PurchasePlanPage() {
       return
     }
 
+    paymentInFlightRef.current = true
     setSubmitting(true)
     setCardErrors({ number: '', expiry: '', cvc: '' })
     setStatus({
@@ -475,8 +641,12 @@ export default function PurchasePlanPage() {
           : 'Creating your secure payment session...',
     })
 
+    let checkoutAttempt: PaymentConfirmation | null = null
     try {
-      const paymentPayload = { termId: paymentPlan }
+      const paymentPayload = {
+        termId: paymentPlan,
+        billingEmail: billingEmail.trim(),
+      }
 
       if (paymentMethod === 'offline') {
         await axiosInstance.post(
@@ -515,12 +685,16 @@ export default function PurchasePlanPage() {
         )
         return paymentRes.data?.data as {
           clientSecret: string
+          paymentIntentId?: string
           amount: number
+          currency: string
+          billingEmail?: string
         }
       }
 
       const confirmPayment = async (clientSecret: string) =>
         stripe.confirmCardPayment(clientSecret, {
+          return_url: `${window.location.origin}/purchase-plan`,
           payment_method: {
             card: cardNumberElement,
             billing_details: {
@@ -530,7 +704,38 @@ export default function PurchasePlanPage() {
           },
         })
 
+      const prepareCheckout = (
+        paymentData: Awaited<ReturnType<typeof createPaymentIntent>>,
+      ) => {
+        if (paymentData.currency?.toLowerCase() !== 'usd') {
+          throw new Error('Checkout must charge in US dollars. No payment has been submitted. Please contact support.')
+        }
+        checkoutAttempt = {
+          paymentIntentId:
+            paymentData.paymentIntentId || paymentData.clientSecret.split('_secret_')[0],
+          schoolId: selectedPlan._id,
+          schoolName: selectedPlan.name,
+          termId: paymentPlan,
+          termLabel: selectedPaymentPlanLabel,
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          billingEmail: paymentData.billingEmail || billingEmail.trim(),
+          paidAt: new Date().toISOString(),
+          status: 'pending',
+          receiptSent: false,
+        }
+        try {
+          window.sessionStorage.setItem(
+            confirmationStorageKeyRef.current,
+            JSON.stringify(checkoutAttempt),
+          )
+        } catch {
+          // Storage is optional; the server still verifies the actual intent.
+        }
+      }
+
       const paymentData = await createPaymentIntent()
+      prepareCheckout(paymentData)
       let { error, paymentIntent } = await confirmPayment(
         paymentData.clientSecret,
       )
@@ -541,6 +746,7 @@ export default function PurchasePlanPage() {
           message: 'Refreshing checkout session and retrying payment...',
         })
         const refreshedPaymentData = await createPaymentIntent(true)
+        prepareCheckout(refreshedPaymentData)
         const retried = await confirmPayment(refreshedPaymentData.clientSecret)
         error = retried.error
         paymentIntent = retried.paymentIntent
@@ -550,54 +756,25 @@ export default function PurchasePlanPage() {
         throw new Error(error.message || 'Payment confirmation failed.')
       }
 
-      if (paymentIntent?.status !== 'succeeded') {
+      if (
+        !paymentIntent ||
+        !['succeeded', 'processing'].includes(paymentIntent.status)
+      ) {
         throw new Error(
           `Payment status returned as ${paymentIntent?.status || 'unknown'}.`,
         )
       }
 
-      setStatus({
-        type: 'success',
-        message: `Payment successful! Activating your school access... Reference: ${paymentIntent.id}`,
+      const confirmedAmount = paymentIntent.amount_received || paymentIntent.amount
+      savePaymentConfirmation({
+        ...checkoutAttempt!,
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status as 'succeeded' | 'processing',
+        amount: confirmedAmount ? confirmedAmount / 100 : checkoutAttempt!.amount,
+        currency: paymentIntent.currency || checkoutAttempt!.currency,
       })
-
-      setStatus({
-        type: 'loading',
-        message: 'Finalising your school access...',
-      })
-
-      // Update localStorage with fresh profile data now that payment succeeded
-      let accessActivated = false
-      try {
-        for (let attempt = 0; attempt < 8; attempt += 1) {
-          const res = await axiosInstance.get('/user/profile')
-          const profile = res.data?.data as UserData
-          const stored = getUser<UserData>()
-          if (profile && stored) setUser({ ...stored, ...profile })
-
-          const { isActive } = await getAssignedSchoolAccess(profile)
-          if (isActive) {
-            accessActivated = true
-            break
-          }
-
-          await delay(1200)
-        }
-      } catch {
-        // Non-fatal — profile page will refetch anyway
-      }
-
-      if (!accessActivated) {
-        setStatus({
-          type: 'loading',
-          message:
-            'Payment confirmed. Waiting for the payment webhook to activate your school access...',
-        })
-        return
-      }
-
-      toast.success('School access activated! Redirecting to your profile...')
-      router.push('/profile')
+      setAccessActivated(false)
+      if (paymentIntent.status === 'succeeded') toast.success('Payment successful.')
     } catch (error: unknown) {
       const message =
         (
@@ -609,9 +786,17 @@ export default function PurchasePlanPage() {
         (error as { message?: string })?.message ||
         'Payment could not be completed.'
 
-      setStatus({ type: 'error', message })
-      toast.error(message)
+      if (checkoutAttempt) {
+        // A network error may arrive after a charge. Verify that intent before
+        // allowing another checkout rather than risk charging the same term twice.
+        savePaymentConfirmation(checkoutAttempt)
+        setActivationNotice('Checking the outcome of your payment. Please do not make another payment.')
+      } else {
+        setStatus({ type: 'error', message })
+        toast.error(message)
+      }
     } finally {
+      paymentInFlightRef.current = false
       setSubmitting(false)
     }
   }
@@ -621,6 +806,97 @@ export default function PurchasePlanPage() {
     if (term.status === 'partial') return 'Partial'
     if (term.status === 'overdue') return 'Overdue'
     return 'Pending'
+  }
+
+  if (paymentConfirmation) {
+    const paymentSucceeded = paymentConfirmation.status === 'succeeded'
+    return (
+      <AuthShell maxWidth="max-w-[720px]" homeHref="/profile">
+        <AuthLogo />
+        <section
+          className="mt-6 rounded-[24px] border border-[#D8E4EC] bg-white p-6 shadow-[0_18px_48px_rgba(6,61,91,0.08)] sm:p-9"
+          aria-live="polite"
+        >
+          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-[#F0FDF4] text-[#16A34A]">
+            {paymentSucceeded ? (
+              <CheckCircle2 className="size-9" />
+            ) : (
+              <Loader2 className="size-9 animate-spin" />
+            )}
+          </div>
+          <h1 className="mt-5 text-center text-[28px] font-bold text-[#0F172A]">
+            {paymentSucceeded ? 'Payment successful' : 'Checking your payment'}
+          </h1>
+          <p className="mt-2 text-center text-[15px] leading-6 text-[#475569]">
+            {paymentSucceeded
+              ? 'Thank you. Your school payment has been confirmed.'
+              : 'Your payment is being verified. Please keep this confirmation page open.'}
+          </p>
+          <dl className="mt-6 space-y-4 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-5 text-[14px]">
+            <div className="flex flex-wrap justify-between gap-2">
+              <dt className="text-[#64748B]">{paymentSucceeded ? 'Amount paid' : 'Payment amount'}</dt>
+              <dd className="text-[20px] font-bold text-[#063D5B]">
+                {formatCurrency(paymentConfirmation.amount, paymentConfirmation.currency)}{' '}
+                <span className="text-[14px]">{paymentConfirmation.currency.toUpperCase()}</span>
+              </dd>
+            </div>
+            <div className="flex flex-wrap justify-between gap-2">
+              <dt className="text-[#64748B]">School</dt>
+              <dd className="font-semibold text-[#0F172A]">{paymentConfirmation.schoolName}</dd>
+            </div>
+            <div className="flex flex-wrap justify-between gap-2">
+              <dt className="text-[#64748B]">Payment term</dt>
+              <dd className="font-semibold text-[#0F172A]">{paymentConfirmation.termLabel}</dd>
+            </div>
+            <div className="flex flex-wrap justify-between gap-2">
+              <dt className="text-[#64748B]">Receipt email</dt>
+              <dd className="break-all font-semibold text-[#0F172A]">{paymentConfirmation.billingEmail}</dd>
+            </div>
+            <div className="flex flex-wrap justify-between gap-2">
+              <dt className="text-[#64748B]">Payment reference</dt>
+              <dd className="break-all font-mono text-[12px] text-[#0F172A]">{paymentConfirmation.paymentIntentId}</dd>
+            </div>
+          </dl>
+          {paymentSucceeded ? (
+            <p className="mt-4 text-[13px] leading-6 text-[#475569]">
+              {paymentConfirmation.receiptSent
+                ? `Your payment receipt has been emailed to ${paymentConfirmation.billingEmail}. Please check your spam folder if you do not see it.`
+                : 'Your payment is confirmed. Receipt delivery is still being confirmed; use Check payment status to check again.'}
+            </p>
+          ) : null}
+          <div className={`mt-4 flex items-start gap-2 rounded-xl border px-4 py-3 text-[13px] leading-5 ${
+            accessActivated
+              ? 'border-[#86EFAC] bg-[#F0FDF4] text-[#166534]'
+              : 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]'
+          }`}>
+            {checkingAccess ? <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" /> : null}
+            <p>{activationNotice || 'Confirming your payment and school access...'}</p>
+          </div>
+          <button
+            type="button"
+            disabled={!paymentSucceeded || !accessActivated}
+            onClick={() => {
+              clearStoredConfirmation()
+              router.push('/profile')
+            }}
+            className="mt-6 flex h-11 w-full items-center justify-center rounded-xl bg-[#063D5B] px-4 text-[15px] font-semibold text-white transition hover:bg-[#0A557D] disabled:cursor-not-allowed disabled:bg-[#94A3B8]"
+          >
+            Continue to Personal Information
+          </button>
+          {!accessActivated || !paymentConfirmation.receiptSent ? (
+            <button
+              type="button"
+              disabled={checkingAccess}
+              onClick={() => setVerificationAttempt(current => current + 1)}
+              className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#CBD5E1] px-4 text-[14px] font-semibold text-[#063D5B] transition hover:bg-[#F8FAFC] disabled:cursor-wait disabled:opacity-60"
+            >
+              {checkingAccess ? <Loader2 className="size-4 animate-spin" /> : null}
+              {checkingAccess ? 'Checking payment status...' : 'Check payment status'}
+            </button>
+          ) : null}
+        </section>
+      </AuthShell>
+    )
   }
 
   return (
@@ -1105,6 +1381,9 @@ export default function PurchasePlanPage() {
                 autoComplete="email"
                 className="mt-1.5 h-10 w-full rounded-lg border border-[#CBD5E1] px-3.5 text-[14px] text-[#0F172A] outline-none transition focus:border-[#063D5B] focus:ring-2 focus:ring-[#063D5B]/10"
               />
+              <p className="mt-1.5 text-[12px] text-[#64748B]">
+                We will send the payment receipt to this email address.
+              </p>
             </div>
 
             <div className={paymentMethod === 'card' ? 'space-y-3' : 'hidden'}>
