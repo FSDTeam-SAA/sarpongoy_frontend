@@ -328,7 +328,7 @@ export default function PurchasePlanPage() {
         }
 
         const price = Number(school.subscribePrice || 0)
-        setTotalStudents(Number(school.totalStudent || profile?.totalStudent || 0))
+        setTotalStudents(Number(school.totalStudent ?? profile?.totalStudent ?? 0))
         setPlans([
           {
             _id: school._id,

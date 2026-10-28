@@ -261,6 +261,7 @@ export default function ProfilePage() {
       const resolvedSchoolName = await resolveSchoolName(data.schoolName)
       const normalizedProfile = {
         ...data,
+        totalStudent: school?.totalStudent ?? data.totalStudent,
         schoolName: normalizeSchoolNameValue(
           data.schoolName,
           resolvedSchoolName,
